@@ -1,0 +1,5 @@
+.vscode/
+chains/
+posterior.pdf
+noisy_sine.png
+run_pypolychord.py
