@@ -25,7 +25,7 @@ def noisy_sine(n_points, amplitude, sigma_y, wavevector):
     xs = default_rng().uniform(0.0, 2 * pi / wavevector, n_points)
     xs.sort()
     ys = amplitude * (sin(wavevector * xs) + default_rng().normal(0, sigma_y, n_points))
-    xs += default_rng().normal(0, sigma_x, n_points)
+    # xs += default_rng().normal(0, sigma_x, n_points)
 
     return xs, ys
 
@@ -39,7 +39,7 @@ def remove_points_outside_sin(amplitude, wavelength, xs, ys):
 
 n_points = 100
 amplitude = 1.0
-sigma_x = 0.05
+# sigma_x = 0.05
 sigma_y = 0.05
 wavelength = 1.0
 wavevector = 2 * pi / wavelength
@@ -47,9 +47,10 @@ xs, ys = noisy_sine(n_points, amplitude, sigma_y, wavevector)
 xs, ys = remove_points_outside_sin(amplitude, wavelength, xs, ys)
 
 fig, ax = plt.subplots()
-ax.errorbar(
-    xs, ys, xerr=sigma_x, yerr=sigma_y, linestyle="None", marker="+", linewidth=0.75
-)
+# ax.errorbar(
+#     xs, ys, xerr=sigma_x, yerr=sigma_y, linestyle="None", marker="+", linewidth=0.75
+# )
+ax.errorbar(xs, ys, yerr=sigma_y, linestyle="None", marker="+", linewidth=0.75)
 ax.axhline(-1, linewidth=0.75)
 ax.axhline(1, linewidth=0.75)
 fig.savefig("noisy_sine.png", dpi=600)
@@ -95,16 +96,19 @@ nDerived = 0
 
 def likelihood(params):
     """I suspect I'm doing this very wrong... and I haven't even started writing yet..."""
-    logL = -len(xs) * log(2 * pi * sigma_x * sigma_y * wavelength)
+    # logL = -len(xs) * log(2 * pi * sigma_x * sigma_y * wavelength)
+    logL = -len(xs) * 0.5 * log(2 * pi * sigma_y ** 2)
+    # def func_to_integrate(x, x_i, y_i):
+    #     return e ** (
+    #         -((x_i - x) ** 2) / 2 / sigma_x ** 2
+    #         - (y_i - f(x, params)) ** 2 / 2 / sigma_y ** 2
+    #     )
 
-    def func_to_integrate(x, x_i, y_i):
-        return e ** (
-            -((x_i - x) ** 2) / 2 / sigma_x ** 2
-            - (y_i - f(x, params)) ** 2 / 2 / sigma_y ** 2
-        )
+    for i, (xi, yi) in enumerate(zip(xs, ys)):
+        logL += -((yi - f(xi, params)) ** 2) / 2 / sigma_y ** 2
 
-    for i, (x_i, y_i) in enumerate(zip(xs, ys)):
-        logL += log(quad(func_to_integrate, 0.0, wavelength, args=(x_i, y_i)))
+    # for i, (x_i, y_i) in enumerate(zip(xs, ys)):
+    #     logL += log(quad(func_to_integrate, 0.0, wavelength, args=(x_i, y_i)))
 
     return logL, []
 
