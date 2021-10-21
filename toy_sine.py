@@ -68,6 +68,22 @@ def vectorised_f(x, params):
     )
 
 
+f = vectorised_f
+
+# from time import perf_counter_ns
+
+# xs = np.linspace(0, wavelength, int(1e8))
+# for func in [f, vectorised_f]:
+
+#     def g(x):
+#         return func(x, np.array([0.25, 0.75, 1, -1]))
+
+#     tic = perf_counter_ns()
+#     g(xs)
+#     toc = perf_counter_ns()
+#     print(toc - tic)
+
+
 # first create noisy signal
 
 
@@ -141,8 +157,10 @@ def likelihood(params):
 
     logL = -len(xs) * 0.5 * log(2 * pi * sigma_y ** 2)
 
-    for i, (xi, yi) in enumerate(zip(xs, ys)):
-        logL += -((yi - f(xi, params)) ** 2) / 2 / sigma_y ** 2
+    # for i, (xi, yi) in enumerate(zip(xs, ys)):
+    #     logL += -((yi - f(xi, params)) ** 2) / 2 / sigma_y ** 2
+
+    logL += np.sum(-((ys - f(xs, params)) ** 2) / 2 / sigma_y ** 2)
 
     # np.vectorise is not vectorising the code, still doing a slow loop
     # need to write f so I can hand it xs
@@ -162,7 +180,7 @@ settings = PolyChordSettings(nDims, nDerived)
 settings.file_root = filename
 settings.nlive = 200
 settings.do_clustering = True
-settings.read_resume = True
+settings.read_resume = False
 
 output = pypolychord.run_polychord(likelihood, nDims, nDerived, settings, prior, dumper)
 
