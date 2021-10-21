@@ -25,34 +25,9 @@ filename = "toy_sine"
 
 
 # linear interpolation function to fit to
+
+
 def f(x, params):
-    """Linear interpolation function."""
-    x_nodes = params[: len(params) // 2]
-    y_nodes = params[len(params) // 2 :]
-
-    # check if x falls before the first or after the last node
-    if x <= x_nodes[0]:
-        return y_nodes[0] / x_nodes[0] * x
-    elif x >= x_nodes[-1]:
-        return (
-            -y_nodes[-1] / (wavelength - x_nodes[-1]) * (x - x_nodes[-1]) + y_nodes[-1]
-        )
-
-    # find last x_node that x exceeds
-    i = np.where(x_nodes <= x)[0][-1]  # where returns a tuple for some reason hence [0]
-    j = i + 1
-
-    # calculate gradient
-    m = (y_nodes[j] - y_nodes[i]) / (x_nodes[j] - x_nodes[i])
-    return m * (x - x_nodes[i]) + y_nodes[i]
-
-    # should just use a scipy one of these, but good exercise
-    # Will would use use np.where and np.mask
-    # "numpy and array programming"
-    # numpy and advanced numpy sections of "Python for data analysis"
-
-
-def vectorised_f(x, params):
     """Vectorised linear interpolation function."""
     # will probably remove this but start here for sanity
     n_internal_nodes = len(params) // 2
@@ -68,23 +43,7 @@ def vectorised_f(x, params):
     )
 
 
-f = vectorised_f
-
-# from time import perf_counter_ns
-
-# xs = np.linspace(0, wavelength, int(1e8))
-# for func in [f, vectorised_f]:
-
-#     def g(x):
-#         return func(x, np.array([0.25, 0.75, 1, -1]))
-
-#     tic = perf_counter_ns()
-#     g(xs)
-#     toc = perf_counter_ns()
-#     print(toc - tic)
-
-
-# first create noisy signal
+# create noisy signal
 
 
 def noisy_sine(n_points, amplitude, sigma_y, wavelength):
@@ -106,8 +65,7 @@ def noisy_line(n_points, amplitude, sigma_y, wavelength):
     xs.sort()
     xs = xs % wavelength
     ys = np.zeros(len(xs))
-    for i, x in enumerate(xs):
-        ys[i] = f(x, [wavelength / 4, wavelength * 3 / 4, amplitude, -amplitude])
+    ys = f(xs, [wavelength / 4, wavelength * 3 / 4, amplitude, -amplitude])
 
     ys += amplitude * default_rng().normal(0, sigma_y, n_points)
     return xs, ys
@@ -128,16 +86,6 @@ def prior(hypercube):
     )
 
 
-fig, ax = plt.subplots()
-zs = np.linspace(0, wavelength, 100, endpoint=False)
-fs = vectorised_f(zs, np.array([0.25, 0.75, 1, -1]))
-ax.plot(zs, fs, linestyle="None", marker="+", linewidth=0.75)
-ax.axhline(-1, linewidth=0.75)
-ax.axhline(1, linewidth=0.75)
-fig.savefig("linear interpolation function.png", dpi=600)
-plt.close()
-
-
 # if there are N nodes, we have N-2 internal nodes and 2N-4 dimensions
 N = 4
 n_internal_nodes = N - 2
@@ -147,6 +95,12 @@ nDerived = 0
 
 def likelihood(params):
     """I suspect I'm doing this very wrong... and I haven't even started writing yet..."""
+    # just x errors
+    logL = -len(xs) * 0.5 * log(2 * pi * sigma_y ** 2)
+
+    logL += np.sum(-((ys - f(xs, params)) ** 2) / 2 / sigma_y ** 2)
+
+    # # x and y errors
     # logL = -len(xs) * log(2 * pi * sigma_x * sigma_y * wavelength)
 
     # def func_to_integrate(x, x_i, y_i):
@@ -154,16 +108,6 @@ def likelihood(params):
     #         -((x_i - x) ** 2) / 2 / sigma_x ** 2
     #         - (y_i - f(x, params)) ** 2 / 2 / sigma_y ** 2
     #     )
-
-    logL = -len(xs) * 0.5 * log(2 * pi * sigma_y ** 2)
-
-    # for i, (xi, yi) in enumerate(zip(xs, ys)):
-    #     logL += -((yi - f(xi, params)) ** 2) / 2 / sigma_y ** 2
-
-    logL += np.sum(-((ys - f(xs, params)) ** 2) / 2 / sigma_y ** 2)
-
-    # np.vectorise is not vectorising the code, still doing a slow loop
-    # need to write f so I can hand it xs
 
     # for i, (x_i, y_i) in enumerate(zip(xs, ys)):
     #     logL += log(quad(func_to_integrate, 0.0, wavelength, args=(x_i, y_i)))
@@ -182,6 +126,7 @@ settings.nlive = 200
 settings.do_clustering = True
 settings.read_resume = False
 
+# run PolyChord
 output = pypolychord.run_polychord(likelihood, nDims, nDerived, settings, prior, dumper)
 
 # | Create a paramnames file
@@ -198,6 +143,7 @@ labels = ["x%i" % i for i in range(n_internal_nodes)] + [
 
 # | Make an anesthetic plot (could also use getdist)
 
+# anesthetic isn't working properly
 from anesthetic import NestedSamples
 
 samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
@@ -218,13 +164,12 @@ ys_to_plot = np.append([0], np.append(nodes[n_internal_nodes:], [0]))
 
 
 fig, ax = plt.subplots()
-# ax.errorbar(
-#     xs, ys, xerr=sigma_x, yerr=sigma_y, linestyle="None", marker="+", linewidth=0.75
-# )
+
 ax.errorbar(
     xs,
     ys,
     label="data",
+    # xerr=sigma_x,
     yerr=sigma_y,
     linestyle="None",
     marker="+",
