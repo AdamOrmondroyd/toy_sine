@@ -2,4 +2,5 @@
 chains/
 posterior.pdf
 noisy_sine.png
+linear interpolation function.png
 run_pypolychord.py

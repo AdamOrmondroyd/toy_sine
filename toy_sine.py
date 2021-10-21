@@ -73,18 +73,32 @@ def f(x, params):
     x_nodes = params[: len(params) // 2]
     y_nodes = params[len(params) // 2 :]
 
-    # stick a zero at the start of x_nodes and y_nodes for simplicity
-    x_nodes = np.append([0], xs)
-    y_nodes = np.append([0], ys)
+    if x <= x_nodes[0]:
+        return y_nodes[0] / x_nodes[0] * x
+    elif x >= x_nodes[-1]:
+        return (
+            -y_nodes[-1] / (wavelength - x_nodes[-1]) * (x - x_nodes[-1]) + y_nodes[-1]
+        )
 
     # find last x_node that x exceeds
     i = np.where(x_nodes <= x)[0][-1]  # where returns a tuple for some reason hence [0]
-    # j=i+1, modulo number of nodes
-    j = (i + 1) % len(x_nodes)
+    j = i + 1
 
     # calculate gradient
     m = (y_nodes[j] - y_nodes[i]) / (x_nodes[j] - x_nodes[i])
     return m * (x - x_nodes[i]) + y_nodes[i]
+
+
+fig, ax = plt.subplots()
+zs = np.linspace(0, wavelength, 100, endpoint=False)
+fs = np.zeros(len(zs))
+for i, z in enumerate(zs):
+    fs[i] = f(z, [0.25, 0.75, 1, -1])
+ax.plot(zs, fs, linestyle="None", marker="+", linewidth=0.75)
+ax.axhline(-1, linewidth=0.75)
+ax.axhline(1, linewidth=0.75)
+fig.savefig("linear interpolation function.png", dpi=600)
+plt.close()
 
 
 # if there are N nodes, we have N-2 internal nodes and 2N-4 dimensions
@@ -125,3 +139,34 @@ settings.do_clustering = True
 settings.read_resume = False
 
 output = pypolychord.run_polychord(likelihood, nDims, nDerived, settings, prior, dumper)
+
+# | Create a paramnames file
+
+paramnames = [("p%i" % i, r"x_%i" % i) for i in range(n_internal_nodes)]
+paramnames += [("p%i" % i, r"y_%i" % i) for i in range(n_internal_nodes)]
+output.make_paramnames_files(paramnames)
+
+labels = [r"x_%i" % i for i in range(n_internal_nodes)] + [
+    r"y_%i" % i for i in range(n_internal_nodes)
+]
+
+# | Make an anesthetic plot (could also use getdist)
+try:
+    from anesthetic import NestedSamples
+
+    samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
+    fig, axes = samples.plot_2d(labels)
+    fig.savefig("sine_posterior.pdf")
+
+except ImportError:
+    try:
+        import getdist.plots
+
+        posterior = output.posterior
+        g = getdist.plots.getSubplotPlotter()
+        g.triangle_plot(posterior, filled=True)
+        g.export("sine_posterior.pdf")
+    except ImportError:
+        print("Install matplotlib and getdist for plotting examples")
+
+    print("Install anesthetic or getdist  for for plotting examples")
