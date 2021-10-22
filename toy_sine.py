@@ -21,7 +21,13 @@ amplitude = 1.0
 # sigma_x = 0.05
 sigma_y = 0.05
 wavelength = 1.0
-filename = "toy_sine"
+filename = "toy_sine_2"
+
+# if there are N nodes, we have N-2 internal nodes and 2N-4 dimensions
+N = 4
+n_internal_nodes = N - 2
+nDims = 2 * n_internal_nodes
+nDerived = 0
 
 
 # linear interpolation function to fit to
@@ -29,17 +35,16 @@ filename = "toy_sine"
 
 def f(x, params):
     """Vectorised linear interpolation function."""
-    # will probably remove this but start here for sanity
     n_internal_nodes = len(params) // 2
-    x_nodes = np.zeros(n_internal_nodes + 2)
-    x_nodes[-1] = wavelength
-    x_nodes[1:-1] = params[:n_internal_nodes]
-    y_nodes = np.zeros(n_internal_nodes + 2)
-    y_nodes[1:-1] = params[n_internal_nodes:]
+    x_nodes = np.zeros(n_internal_nodes + 1)
+    x_nodes[1:] = params[:n_internal_nodes]
+    y_nodes = np.zeros(n_internal_nodes + 1)
+    y_nodes[1:] = params[n_internal_nodes:]
     return np.interp(
         x,
         x_nodes,
         y_nodes,
+        period=wavelength,
     )
 
 
@@ -82,15 +87,8 @@ def prior(hypercube):
     n_internal_nodes = len(hypercube) // 2
     return np.append(
         SortedUniformPrior(0, wavelength)(hypercube[:n_internal_nodes]),
-        UniformPrior(-1, 1)(hypercube[n_internal_nodes:]),
+        UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[n_internal_nodes:]),
     )
-
-
-# if there are N nodes, we have N-2 internal nodes and 2N-4 dimensions
-N = 4
-n_internal_nodes = N - 2
-nDims = 2 * n_internal_nodes
-nDerived = 0
 
 
 def likelihood(params):
@@ -137,9 +135,7 @@ paramnames += [
 ]
 output.make_paramnames_files(paramnames)
 
-labels = ["x%i" % i for i in range(n_internal_nodes)] + [
-    "y%i" % i for i in range(n_internal_nodes)
-]
+labels = ["p%i" % i for i in range(nDims)]
 
 # | Make an anesthetic plot (could also use getdist)
 
@@ -179,6 +175,6 @@ ax.errorbar(
 ax.plot(xs_to_plot, ys_to_plot, label="fit", linewidth=0.75, color="c")
 ax.axhline(-1, linewidth=0.75, color="k")
 ax.axhline(1, linewidth=0.75, color="k")
-ax.legend()
+ax.legend(frameon=False)
 fig.savefig(filename + ".png", dpi=600)
 plt.close()
