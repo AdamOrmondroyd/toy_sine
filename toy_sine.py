@@ -22,11 +22,14 @@ amplitude = 1.0
 sigma_y = 0.05
 wavelength = 1.0
 filename = "toy_sine_comparison"
-read_resume = True
+read_resume = False
 
 # if there are N nodes, we have N-2 internal nodes and 2N-4 dimensions
+# change this: don't bother with end nodes, just use period wavelength in np.interp
+# and don't force through origin
 
-Ns = np.array([4, 5, 6])
+# Ns = np.array([2])
+Ns = np.array([1, 2, 3, 4, 5, 6])
 logZs = np.zeros(len(Ns))
 
 
@@ -35,15 +38,11 @@ logZs = np.zeros(len(Ns))
 
 def f(x, params):
     """Vectorised linear interpolation function."""
-    n_internal_nodes = len(params) // 2
-    x_nodes = np.zeros(n_internal_nodes + 1)
-    x_nodes[1:] = params[:n_internal_nodes]
-    y_nodes = np.zeros(n_internal_nodes + 1)
-    y_nodes[1:] = params[n_internal_nodes:]
+    n = len(params) // 2
     return np.interp(
         x,
-        x_nodes,
-        y_nodes,
+        params[:n],
+        params[n:],
         period=wavelength,
     )
 
@@ -97,18 +96,17 @@ axs[0].axhline(1, linewidth=0.75, color="k")
 
 for ii, N in enumerate(Ns):
     print("N = %i" % N)
-    n_internal_nodes = N - 2
-    nDims = int(2 * n_internal_nodes)
+    nDims = int(2 * N)
     nDerived = 0
 
     # Define the prior (sorted uniform in x, uniform in y)
 
     def prior(hypercube):
         """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from [-1,1]^D for Yi."""
-        n_internal_nodes = len(hypercube) // 2
+        N = len(hypercube) // 2
         return np.append(
-            SortedUniformPrior(0, wavelength)(hypercube[:n_internal_nodes]),
-            UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[n_internal_nodes:]),
+            SortedUniformPrior(0, wavelength)(hypercube[:N]),
+            UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[N:]),
         )
 
     def likelihood(params):
@@ -149,10 +147,8 @@ for ii, N in enumerate(Ns):
 
     # | Create a paramnames file
 
-    paramnames = [("p%i" % i, r"x_%i" % i) for i in range(n_internal_nodes)]
-    paramnames += [
-        ("p%i" % (i + n_internal_nodes), r"y_%i" % i) for i in range(n_internal_nodes)
-    ]
+    paramnames = [("p%i" % i, r"x_%i" % i) for i in range(N)]
+    paramnames += [("p%i" % (i + N), r"y_%i" % i) for i in range(N)]
     output.make_paramnames_files(paramnames)
 
     # labels = ["p%i" % i for i in range(nDims)]
@@ -174,8 +170,8 @@ for ii, N in enumerate(Ns):
     # g.export(filename + "_posterior.pdf")
 
     nodes = np.array(output.posterior.means)
-    xs_to_plot = np.append([0], np.append(nodes[:n_internal_nodes], [wavelength]))
-    ys_to_plot = np.append([0], np.append(nodes[n_internal_nodes:], [0]))
+    xs_to_plot = np.append([0], np.append(nodes[:N], [wavelength]))
+    ys_to_plot = np.append([0], np.append(nodes[N:], [0]))
 
     logZs[ii] = output.logZ
 
@@ -186,7 +182,7 @@ for ii, N in enumerate(Ns):
         linewidth=0.75,
     )
 
-axs[1].plot(Ns, logZs)
+axs[1].plot(Ns, logZs, marker="+")
 axs[1].set(xlabel="N", ylabel="log(Z)")
 
 axs[0].legend(frameon=False)
