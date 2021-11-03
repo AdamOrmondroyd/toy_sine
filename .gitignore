@@ -1,7 +1,6 @@
 .vscode/
 chains/
-posterior.pdf
-noisy_sine.png
-linear interpolation function.png
 run_pypolychord.py
-toy_sine_posterior.pdf
+*.npy
+*.pdf
+*.png
