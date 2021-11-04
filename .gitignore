@@ -4,3 +4,4 @@ run_pypolychord.py
 *.npy
 *.pdf
 *.png
+*.ipynb
