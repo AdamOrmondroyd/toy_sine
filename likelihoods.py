@@ -5,7 +5,7 @@ Likelihood functions for fitting to a linear interpolation function with
 y errors or both x and y errors.
 """
 
-from numpy import append, exp, log, outer, pi, subtract, sum, sqrt
+from numpy import concatenate, exp, log, outer, pi, subtract, sum, sqrt
 from scipy.special import erf
 from constants import sigma_x, sigma_y, wavelength
 from data import xs, ys
@@ -33,8 +33,8 @@ def x_y_errors_likelihood(params):
         * x_nodes[0]
     )
 
-    x_nodes = append(0, append(x_nodes, wavelength))
-    y_nodes = append(y_0, append(y_nodes, y_0))
+    x_nodes = concatenate(([0], x_nodes, [wavelength]))
+    y_nodes = concatenate(([y_0], y_nodes, [y_0]))
     ms = (y_nodes[1:] - y_nodes[:-1]) / (x_nodes[1:] - x_nodes[:-1])
     cs = y_nodes[:-1] - ms * x_nodes[:-1]
 
