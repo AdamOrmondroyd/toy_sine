@@ -87,19 +87,22 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
 
     for ii, N in enumerate(Ns):
         print("N = %i" % N)
-        nDims = int(2 * N)
-        if not cyclic:
-            nDims += 2
+        n_x_nodes = N
+        if cyclic:
+            n_y_nodes = n_x_nodes
+        else:
+            n_y_nodes = n_x_nodes + 2
+        nDims = int(n_x_nodes + n_y_nodes)
+
         nDerived = 0
 
         # Define the prior (sorted uniform in x, uniform in y)
 
         def prior(hypercube):
             """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from [-1,1]^D for Yi."""
-            N = len(hypercube) // 2
             return np.append(
-                SortedUniformPrior(0, wavelength)(hypercube[:N]),
-                UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[N:]),
+                SortedUniformPrior(0, wavelength)(hypercube[:n_x_nodes]),
+                UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[n_x_nodes:]),
             )
 
         def dumper(live, dead, logweights, logZ, logZerr):
@@ -119,13 +122,8 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
 
         # | Create a paramnames file
 
-        # x parameters
-        paramnames = [("p%i" % i, r"x_%i" % i) for i in range(N)]
-        # y parameters
-        if cyclic:
-            paramnames += [("p%i" % (i + N), r"y_%i" % i) for i in range(N)]
-        else:
-            paramnames += [("p%i" % (i + N), r"y_%i" % i) for i in range(N + 2)]
+        paramnames = [("p%i" % i, r"x_%i" % i) for i in range(n_x_nodes)]
+        paramnames += [("p%i" % (i + N), r"y_%i" % i) for i in range(n_y_nodes)]
         output.make_paramnames_files(paramnames)
 
         # | Make an anesthetic plot (could also use getdist)
@@ -147,7 +145,7 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
 
         nodes = np.array(output.posterior.means)
 
-        xs_to_plot = np.concatenate(([0], nodes[:N], [wavelength]))
+        xs_to_plot = np.concatenate(([0], nodes[:n_x_nodes], [wavelength]))
         ys_to_plot = f(xs_to_plot, nodes)
 
         logZs[ii] = output.logZ
@@ -167,7 +165,7 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
         axs[1].set(xlabel="N", ylabel="log(Z)")
         full_filename = Path(__file__).parent.joinpath(filename + "_comparison.png")
     else:
-        full_filename = Path(__file__).parent.joinpath(filename + "_%i.png" % Ns[0])
+        full_filename = Path(__file__).parent.joinpath(filename + "_%i.png" % n_x_nodes)
 
     fig.savefig(full_filename, dpi=600)
 
