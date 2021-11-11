@@ -1,7 +1,10 @@
 """
+## Recreating the toy sine example from https://arxiv.org/pdf/1506.09024.pdf
+
 Toy sine example for getting my head around pypolychord.
 """
 
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 import pypolychord
@@ -13,29 +16,43 @@ try:
 except ImportError:
     pass
 
-from constants import amplitude, line_or_sine, sigma_x, sigma_y, wavelength, x_errors
-from data import xs, ys
-from linear_interpolation_functions import f_numpy as f
+from constants import (
+    amplitude,
+    sigma_x,
+    sigma_y,
+    wavelength,
+    x_errors,
+)
+from data import get_data
+from likelihoods import get_likelihood
 
 
-plottitle = line_or_sine
-filename = "toy_" + line_or_sine
+def toy_sine(line_or_sine, Ns, cyclic, read_resume=False):
+    """
+    Runs polychord on the line or sine data.
+    Uses piecewise linear model to compare N internal nodes for each N in Ns.
+    Option for cyclic boundary conditions.
+    """
 
-if x_errors:
-    plottitle += " x errors"
-    filename += "_x_errors"
-    from likelihoods import x_y_errors_likelihood as likelihood
-else:
-    from likelihoods import y_errors_likelihood as likelihood
+    xs, ys = get_data(line_or_sine)
 
-read_resume = False  # use this one to toggle
+    plottitle = line_or_sine
+    filename = "toy_" + line_or_sine
 
-# Ns = np.array([2])
-Ns = np.array([2, 3, 4, 5, 6])
+    if x_errors:
+        plottitle += " x errors"
+        filename += "_x_errors"
 
-logZs = np.zeros(len(Ns))
+    if cyclic:
+        plottitle += " cyclic"
+        filename += "_cyclic"
+        from likelihoods import f_cyclic_numpy as f
+    else:
+        from likelihoods import f_end_nodes_numpy as f
 
-if __name__ == "__main__":
+    likelihood = get_likelihood(line_or_sine, cyclic)
+
+    logZs = np.zeros(len(Ns))
 
     if len(Ns) == 1:
         fig, axs = plt.subplots()
@@ -72,6 +89,8 @@ if __name__ == "__main__":
     for ii, N in enumerate(Ns):
         print("N = %i" % N)
         nDims = int(2 * N)
+        if not cyclic:
+            nDims += 2
         nDerived = 0
 
         # Define the prior (sorted uniform in x, uniform in y)
@@ -101,8 +120,13 @@ if __name__ == "__main__":
 
         # | Create a paramnames file
 
+        # x parameters
         paramnames = [("p%i" % i, r"x_%i" % i) for i in range(N)]
-        paramnames += [("p%i" % (i + N), r"y_%i" % i) for i in range(N)]
+        # y parameters
+        if cyclic:
+            paramnames += [("p%i" % (i + N), r"y_%i" % i) for i in range(N)]
+        else:
+            paramnames += [("p%i" % (i + N), r"y_%i" % i) for i in range(N + 2)]
         output.make_paramnames_files(paramnames)
 
         # | Make an anesthetic plot (could also use getdist)
@@ -124,7 +148,7 @@ if __name__ == "__main__":
 
         nodes = np.array(output.posterior.means)
 
-        xs_to_plot = np.append([0], np.append(nodes[:N], [wavelength]))
+        xs_to_plot = np.concatenate(([0], nodes[:N], [wavelength]))
         ys_to_plot = f(xs_to_plot, nodes)
 
         logZs[ii] = output.logZ
@@ -142,8 +166,10 @@ if __name__ == "__main__":
     if len(Ns) > 1:
         axs[1].plot(Ns, logZs, marker="+")
         axs[1].set(xlabel="N", ylabel="log(Z)")
-        fig.savefig(filename + "_comparison.png", dpi=600)
+        full_filename = Path(__file__).parent.joinpath(filename + "_comparison.png")
     else:
-        fig.savefig(filename + "_%i.png" % Ns[0], dpi=600)
+        full_filename = Path(__file__).parent.joinpath(filename + "_%i.png" % Ns[0])
+
+    fig.savefig(full_filename, dpi=600)
 
     plt.close()

@@ -9,16 +9,23 @@ from numpy import (
     concatenate,
     interp,
     greater,
-    greater_equal,
     logical_and,
-    less,
     less_equal,
     outer,
 )
 
 
-def f_numpy(x, params):
-    """Vectorised linear interpolation function using np.interp."""
+def f_end_nodes_numpy(x, params):
+    n = len(params) // 2 - 1
+    return interp(
+        x,
+        concatenate(([0], params[:n], [wavelength])),
+        params[n:],
+    )
+
+
+def f_cyclic_numpy(x, params):
+    """Vectorised cyclic linear interpolation function using np.interp."""
     n = len(params) // 2
     return interp(
         x,
@@ -28,8 +35,8 @@ def f_numpy(x, params):
     )
 
 
-def f_adam(x, params):
-    """Vectorised linear interpolation function done manually."""
+def f_cyclic_adam(x, params):
+    """Vectorised cyclic linear interpolation function done manually."""
     x %= wavelength
     n = len(params) // 2
     xp = params[:n]
@@ -49,5 +56,5 @@ if __name__ == "__main__":
     from data import xs
 
     params = array([wavelength / 4, 3 * wavelength / 4, 1.0, -1.0])
-    print(f_adam(xs, params))
+    print(f_cyclic_adam(xs, params))
     exit()

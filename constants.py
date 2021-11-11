@@ -4,8 +4,8 @@
 Constant values used throughout.
 """
 
-line_or_sine = "line"
-# line_or_sine = "sine"
+from numpy import array
+
 n_points = 100
 amplitude = 1.0
 wavelength = 1.0

@@ -7,7 +7,7 @@ Generates data_line.npy.
 from numpy import load, save, stack, pi
 from numpy.random import default_rng
 from constants import amplitude, n_points, sigma_x, sigma_y, wavelength
-from linear_interpolation_functions import f_interp as f
+from linear_interpolation_functions import f_cyclic_numpy as f
 
 filename = "data_line.npy"
 
