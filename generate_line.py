@@ -33,5 +33,5 @@ if __name__ == "__main__":
             filename = "data_line_x_errors.npy"
         else:
             filename = "data_line.npy"
-        xs, ys = noisy_line(n_points, amplitude, wavelength, sigma_x, sigma_y)
+        xs, ys = noisy_line(n_points, x_errors, amplitude, wavelength, sigma_x, sigma_y)
         save(filename, stack((xs, ys)))
