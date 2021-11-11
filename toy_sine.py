@@ -21,20 +21,19 @@ from constants import (
     sigma_x,
     sigma_y,
     wavelength,
-    x_errors,
 )
 from data import get_data
 from likelihoods import get_likelihood
 
 
-def toy_sine(line_or_sine, Ns, cyclic, read_resume=False):
+def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
     """
     Runs polychord on the line or sine data.
     Uses piecewise linear model to compare N internal nodes for each N in Ns.
     Option for cyclic boundary conditions.
     """
 
-    xs, ys = get_data(line_or_sine)
+    xs, ys = get_data(line_or_sine, x_errors)
 
     plottitle = line_or_sine
     filename = "toy_" + line_or_sine
@@ -50,7 +49,7 @@ def toy_sine(line_or_sine, Ns, cyclic, read_resume=False):
     else:
         from likelihoods import f_end_nodes_numpy as f
 
-    likelihood = get_likelihood(line_or_sine, cyclic)
+    likelihood = get_likelihood(line_or_sine, cyclic, x_errors)
 
     logZs = np.zeros(len(Ns))
 

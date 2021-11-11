@@ -9,9 +9,5 @@ from numpy import array
 n_points = 100
 amplitude = 1.0
 wavelength = 1.0
-x_errors = True
-if x_errors:
-    sigma_x = 0.05
-else:
-    sigma_x = 0.0
+sigma_x = 0.05
 sigma_y = 0.05

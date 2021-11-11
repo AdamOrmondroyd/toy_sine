@@ -7,7 +7,7 @@ y errors or both x and y errors.
 
 from numpy import concatenate, exp, log, outer, pi, subtract, sum, sqrt
 from scipy.special import erf
-from constants import sigma_x, sigma_y, wavelength, x_errors
+from constants import sigma_x, sigma_y, wavelength
 from data import get_data
 from linear_interpolation_functions import f_end_nodes_numpy, f_cyclic_numpy
 
@@ -16,9 +16,9 @@ LOG_2_SQRT_2PIλ = log(2) + 0.5 * log(2 * pi * wavelength)
 var_x, var_y = sigma_x ** 2, sigma_y ** 2
 
 
-def get_likelihood(line_or_sine="sine", cyclic=False):
+def get_likelihood(line_or_sine="sine", cyclic=False, x_errors=True):
     """Returns a likelihood function using either the "line" or "sine" data."""
-    xs, ys = get_data(line_or_sine)
+    xs, ys = get_data(line_or_sine, x_errors)
 
     if cyclic:
         if x_errors:

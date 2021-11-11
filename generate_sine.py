@@ -13,6 +13,7 @@ filename = "data_sine.npy"
 
 def noisy_sine(
     n_points,
+    x_errors,
     amplitude=amplitude,
     wavelength=wavelength,
     sigma_x=sigma_x,
@@ -22,12 +23,17 @@ def noisy_sine(
     and ys are sin(xs) + Gaussian noise"""
     xs = default_rng().uniform(0.0, wavelength, n_points)
     ys = amplitude * sin(2 * pi / wavelength * xs)
-    xs += default_rng().normal(0, sigma_x, n_points)
+    xs += default_rng().normal(0, sigma_x * x_errors, n_points)
     ys += default_rng().normal(0, sigma_y, n_points)
     xs = xs % wavelength
     return xs, ys
 
 
 if __name__ == "__main__":
-    xs, ys = noisy_sine(n_points, amplitude, wavelength, sigma_x, sigma_y)
+    x_errors = False
+    if x_errors:
+        filename = "data_sine_x_errors.npy"
+    else:
+        filename = "data_sine.npy"
+    xs, ys = noisy_sine(n_points, x_errors, amplitude, wavelength, sigma_x, sigma_y)
     save(filename, stack((xs, ys)))
