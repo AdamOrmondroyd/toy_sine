@@ -1,6 +1,7 @@
 .vscode/
 chains/
 run_pypolychord.py
+run.py
 *.npy
 *.pdf
 *.png
