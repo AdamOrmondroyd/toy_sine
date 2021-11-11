@@ -45,9 +45,9 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
     if cyclic:
         plottitle += " cyclic"
         filename += "_cyclic"
-        from likelihoods import f_cyclic_numpy as f
+        from linear_interpolation_functions import f_cyclic_numpy as f
     else:
-        from likelihoods import f_end_nodes_numpy as f
+        from linear_interpolation_functions import f_end_nodes_numpy as f
 
     likelihood = get_likelihood(line_or_sine, cyclic, x_errors)
 
