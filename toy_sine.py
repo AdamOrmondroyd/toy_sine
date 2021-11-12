@@ -29,7 +29,9 @@ from likelihoods import get_likelihood
 def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
     """
     Runs polychord on the line or sine data.
+
     Uses piecewise linear model to compare N internal nodes for each N in Ns.
+
     Option for cyclic boundary conditions.
     """
 
@@ -99,10 +101,12 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
         # Define the prior (sorted uniform in x, uniform in y)
 
         def prior(hypercube):
-            """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from [-1,1]^D for Yi."""
-            return np.append(
-                SortedUniformPrior(0, wavelength)(hypercube[:n_x_nodes]),
-                UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[n_x_nodes:]),
+            """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from amplitude*[-2,2]^D for Yi."""
+            return np.concatenate(
+                (
+                    SortedUniformPrior(0, wavelength)(hypercube[:n_x_nodes]),
+                    UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[n_x_nodes:]),
+                )
             )
 
         def dumper(live, dead, logweights, logZ, logZerr):
