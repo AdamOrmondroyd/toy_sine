@@ -49,7 +49,7 @@ def get_likelihood(line_or_sine="sine", cyclic=False, x_errors=True):
                 t_minus = sqrt(q / 2) / (sigma_x * sigma_y) * (x_nodes[:-1] - beta)
                 t_plus = sqrt(q / 2) / (sigma_x * sigma_y) * (x_nodes[1:] - beta)
 
-                logL = -n * LOG_2_SQRT_2PIλ
+                logL = -len(xs) * LOG_2_SQRT_2PIλ
                 logL += sum(
                     log(
                         sum(
@@ -94,7 +94,7 @@ def get_likelihood(line_or_sine="sine", cyclic=False, x_errors=True):
                 t_minus = sqrt(q / 2) / (sigma_x * sigma_y) * (x_nodes[:-1] - beta)
                 t_plus = sqrt(q / 2) / (sigma_x * sigma_y) * (x_nodes[1:] - beta)
 
-                logL = -n * LOG_2_SQRT_2PIλ
+                logL = -len(xs) * LOG_2_SQRT_2PIλ
                 logL += sum(
                     log(
                         sum(
