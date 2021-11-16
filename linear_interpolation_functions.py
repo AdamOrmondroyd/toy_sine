@@ -5,14 +5,7 @@ Linear interpolation function.
 """
 
 from constants import wavelength
-from numpy import (
-    concatenate,
-    interp,
-    greater,
-    logical_and,
-    less_equal,
-    outer,
-)
+from numpy import concatenate, interp, greater, logical_and, less_equal, outer, where
 from scipy.interpolate import interp1d
 
 
@@ -66,7 +59,7 @@ def f_cyclic_adam(x, params):
     ms = (yp[1:] - yp[:-1]) / (xp[1:] - xp[:-1])
     cs = yp[:-1] - ms * xp[:-1]
 
-    return (outer(x, ms) + cs)[
+    return (outer(x_mod_wavelength, ms) + cs)[
         logical_and(
             less_equal.outer(xp[:-1], x_mod_wavelength),
             greater.outer(xp[1:], x_mod_wavelength),
