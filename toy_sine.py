@@ -26,7 +26,7 @@ from data import get_data
 from likelihoods import get_likelihood
 
 
-def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
+def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
     """
     Runs polychord on the line or sine data.
 
@@ -47,9 +47,19 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
     if cyclic:
         plottitle += " cyclic"
         filename += "_cyclic"
-        from linear_interpolation_functions import f_cyclic_numpy as f
+        if adam:
+            from linear_interpolation_functions import f_cyclic_adam as f
+        else:
+            from linear_interpolation_functions import f_cyclic_numpy as f
     else:
-        from linear_interpolation_functions import f_end_nodes_numpy as f
+        if adam:
+            from linear_interpolation_functions import f_end_nodes_scipy as f
+        else:
+            from linear_interpolation_functions import f_end_nodes_numpy as f
+
+    if adam:
+        plottitle += " adam"
+        filename += "_adam"
 
     likelihood = get_likelihood(line_or_sine, cyclic, x_errors)
 
@@ -152,14 +162,14 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False):
         xs_to_plot = np.concatenate(([0], nodes[:n_x_nodes], [wavelength]))
         ys_to_plot = f(xs_to_plot, nodes)
 
-        logZs[ii] = output.logZ
-
         axs[0].plot(
             xs_to_plot,
             ys_to_plot,
             label="N = %i" % N,
             linewidth=0.75,
         )
+
+        logZs[ii] = output.logZ
 
     axs[0].legend(frameon=False)
     axs[0].set(title=plottitle)
