@@ -57,7 +57,9 @@ def get_likelihood(line_or_sine="sine", cyclic=False, x_errors=True, adam=False)
 
                 logL = -len(xs) * LOG_2_SQRT_2PIλ
                 logL += sum(
-                    logsumexp(-gamma + log(q ** -0.5 * (erf(t_plus) - erf(t_minus))))
+                    logsumexp(
+                        -gamma + log(q ** -0.5 * (erf(t_plus) - erf(t_minus))), axis=-1
+                    )
                 )
 
                 return logL, []
@@ -99,8 +101,10 @@ def get_likelihood(line_or_sine="sine", cyclic=False, x_errors=True, adam=False)
                 t_plus = sqrt(q / 2) / (sigma_x * sigma_y) * (x_nodes[1:] - beta)
 
                 logL = -len(xs) * LOG_2_SQRT_2PIλ
-                logL += sum(
-                    logsumexp(-gamma + log(q ** -0.5 * (erf(t_plus) - erf(t_minus))))
+                logL = sum(
+                    logsumexp(
+                        -gamma + log(q ** -0.5 * (erf(t_plus) - erf(t_minus))), axis=-1
+                    )
                 )
 
                 return logL, []
