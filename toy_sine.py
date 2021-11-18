@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import pypolychord
 from pypolychord.settings import PolyChordSettings
 from pypolychord.priors import UniformPrior, SortedUniformPrior
+from fgivenx import plot_contours, samples_from_getdist_chains
 
 try:
     from mpi4py import MPI
@@ -34,6 +35,8 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
 
     Option for cyclic boundary conditions.
     """
+
+    running_location = Path(__file__).parent
 
     xs, ys = get_data(line_or_sine, x_errors)
 
@@ -61,7 +64,7 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
         plottitle += " adam"
         filename += "_adam"
 
-    likelihood = get_likelihood(line_or_sine, cyclic, x_errors)
+    likelihood = get_likelihood(line_or_sine, cyclic, x_errors, adam)
 
     logZs = np.zeros(len(Ns))
 
@@ -137,14 +140,14 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
         # | Create a paramnames file
 
         paramnames = [("p%i" % i, r"x_%i" % i) for i in range(n_x_nodes)]
-        paramnames += [("p%i" % (i + N), r"y_%i" % i) for i in range(n_y_nodes)]
+        paramnames += [("p%i" % (i + n_x_nodes), r"y_%i" % i) for i in range(n_y_nodes)]
         output.make_paramnames_files(paramnames)
 
         # | Make an anesthetic plot (could also use getdist)
 
         labels = ["p%i" % i for i in range(nDims)]
         # anesthetic isn't working properly
-        # from anesthetic import NestedSamples
+        # from anesthetic import NestedSamples,
 
         # samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
         # fig, axes = samples.plot_2d(labels)
@@ -152,12 +155,16 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
 
         # import getdist.plots
 
-        # posterior = output.posterior
+        posterior = output.posterior
+        samples, weights = samples_from_getdist_chains(
+            labels, settings.base_dir + "/" + settings.file_root
+        )
         # g = getdist.plots.getSubplotPlotter()
         # g.triangle_plot(posterior, filled=True)
-        # g.export(filename + "_posterior.pdf")
+        # g.export(filename + f"_{n}_posterior.pdf")
 
         nodes = np.array(output.posterior.means)
+        np.save("nodes.npy", nodes)
 
         xs_to_plot = np.concatenate(([0], nodes[:n_x_nodes], [wavelength]))
         ys_to_plot = f(xs_to_plot, nodes)
@@ -168,6 +175,25 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
             label="N = %i" % N,
             linewidth=0.75,
         )
+        axs[0].plot(
+            np.linspace(0, wavelength, 1000),
+            f(np.linspace(0, wavelength, 1000), nodes),
+            label="check I'm plotting blue right",
+        )
+        prior_samples = np.loadtxt(
+            running_location.joinpath("chains/" + filename + f"_{N}_prior.txt")
+        )
+
+        def f_for_plotting(x, params):
+            print(x)
+            return f(x, params)
+
+        cbar = plot_contours(
+            f, np.linspace(0, wavelength, 100), samples, weights=weights
+        )
+        cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3])
+        cbar.set_ticklabels(["", r"$1\sigma$", r"$2\sigma$", r"$3\sigma$"])
+        # axs[0].plot()
 
         logZs[ii] = output.logZ
 
@@ -177,10 +203,14 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
     if len(Ns) > 1:
         axs[1].plot(Ns, logZs, marker="+")
         axs[1].set(xlabel="N", ylabel="log(Z)")
-        full_filename = Path(__file__).parent.joinpath(filename + "_comparison.png")
+        plot_filename = running_location.joinpath(
+            "plots/" + filename + "_comparison.png"
+        )
     else:
-        full_filename = Path(__file__).parent.joinpath(filename + "_%i.png" % n_x_nodes)
+        plot_filename = running_location.joinpath(
+            "plots/" + filename + "_%i.png" % n_x_nodes
+        )
 
-    fig.savefig(full_filename, dpi=600)
+    fig.savefig(plot_filename, dpi=600)
 
     plt.close()
