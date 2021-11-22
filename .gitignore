@@ -3,6 +3,7 @@ chains/
 cache/
 run_pypolychord.py
 run.py
+toy_sine.sh
 *.npy
 *.pdf
 *.png
