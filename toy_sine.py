@@ -56,37 +56,34 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adam=False):
 
     logZs = np.zeros(len(Ns))
 
-    if len(Ns) == 1:
-        fig, axs = plt.subplots()
-        axs = [axs]
-    else:
-        fig, axs = plt.subplots(2)
+    fig, ax = plt.subplots()
 
-    if x_errors:
-        axs[0].errorbar(
-            xs,
-            ys,
-            label="data",
-            xerr=sigma_x,
-            yerr=sigma_y,
-            linestyle="None",
-            marker="+",
-            linewidth=0.75,
-            color="k",
-        )
-    else:
-        axs[0].errorbar(
-            xs,
-            ys,
-            label="data",
-            yerr=sigma_y,
-            linestyle="None",
-            marker="+",
-            linewidth=0.75,
-            color="k",
-        )
-    axs[0].axhline(-1, linewidth=0.75, color="k")
-    axs[0].axhline(1, linewidth=0.75, color="k")
+    if len(Ns) == 1:
+        if x_errors:
+            ax.errorbar(
+                xs,
+                ys,
+                label="data",
+                xerr=sigma_x,
+                yerr=sigma_y,
+                linestyle="None",
+                marker="+",
+                linewidth=0.75,
+                color="k",
+            )
+        else:
+            ax.errorbar(
+                xs,
+                ys,
+                label="data",
+                yerr=sigma_y,
+                linestyle="None",
+                marker="+",
+                linewidth=0.75,
+                color="k",
+            )
+        ax.axhline(-1, linewidth=0.75, color="k")
+        ax.axhline(1, linewidth=0.75, color="k")
 
     for ii, N in enumerate(Ns):
         print("N = %i" % N)
@@ -140,36 +137,36 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adam=False):
 
         # import getdist.plots
 
-        posterior = output.posterior
-        samples, weights = samples_from_getdist_chains(
-            labels, settings.base_dir + "/" + settings.file_root
-        )
-        # g = getdist.plots.getSubplotPlotter()
-        # g.triangle_plot(posterior, filled=True)
-        # g.export(filename + f"_{n}_posterior.pdf")
+        if len(Ns) == 1:
+            samples, weights = samples_from_getdist_chains(
+                labels, settings.base_dir + "/" + settings.file_root
+            )
+            # g = getdist.plots.getSubplotPlotter()
+            # g.triangle_plot(posterior, filled=True)
+            # g.export(filename + f"_{n}_posterior.pdf")
 
-        prior_samples = np.loadtxt(
-            running_location.joinpath("chains/" + filename + f"_{N}_prior.txt")
-        )
+            prior_samples = np.loadtxt(
+                running_location.joinpath("chains/" + filename + f"_{N}_prior.txt")
+            )
 
-        cbar = plot_contours(
-            f, np.linspace(0, wavelength, 100), samples, weights=weights
-        )
-        cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3], label="fgivenx")
-        cbar.set_ticklabels(["", r"$1\sigma$", r"$2\sigma$", r"$3\sigma$"])
+            cbar = plot_contours(
+                f, np.linspace(0, wavelength, 100), samples, weights=weights
+            )
+            cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3], label="fgivenx")
+            cbar.set_ticklabels(["", r"$1\sigma$", r"$2\sigma$", r"$3\sigma$"])
 
         logZs[ii] = output.logZ
 
-    axs[0].legend(frameon=False)
-    axs[0].set(title=plottitle)
+    ax.set(title=plottitle)
 
     if len(Ns) > 1:
-        axs[1].plot(Ns, logZs, marker="+")
-        axs[1].set(xlabel="N", ylabel="log(Z)")
+        ax.plot(Ns, logZs, marker="+")
+        ax.set(xlabel="N", ylabel="log(Z)")
         plot_filename = running_location.joinpath(
             "plots/" + filename + "_comparison.png"
         )
     else:
+        ax.legend(frameon=False)
         plot_filename = running_location.joinpath(
             "plots/" + filename + "_%i.png" % n_x_nodes
         )
