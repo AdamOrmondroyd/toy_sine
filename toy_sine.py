@@ -24,10 +24,11 @@ from constants import (
     wavelength,
 )
 from data import get_data
+from linear_interpolation_functions import f_end_nodes as f
 from likelihoods import get_likelihood
 
 
-def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
+def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adam=False):
     """
     Runs polychord on the line or sine data.
 
@@ -47,24 +48,11 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
         plottitle += " x errors"
         filename += "_x_errors"
 
-    if cyclic:
-        plottitle += " cyclic"
-        filename += "_cyclic"
-        if adam:
-            from linear_interpolation_functions import f_cyclic_adam as f
-        else:
-            from linear_interpolation_functions import f_cyclic_numpy as f
-    else:
-        if adam:
-            from linear_interpolation_functions import f_end_nodes_scipy as f
-        else:
-            from linear_interpolation_functions import f_end_nodes_numpy as f
-
     if adam:
         plottitle += " adam"
         filename += "_adam"
 
-    likelihood = get_likelihood(line_or_sine, cyclic, x_errors, adam)
+    likelihood = get_likelihood(line_or_sine, x_errors)
 
     logZs = np.zeros(len(Ns))
 
@@ -103,10 +91,7 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
     for ii, N in enumerate(Ns):
         print("N = %i" % N)
         n_x_nodes = N
-        if cyclic:
-            n_y_nodes = n_x_nodes
-        else:
-            n_y_nodes = n_x_nodes + 2
+        n_y_nodes = n_x_nodes + 2
         nDims = int(n_x_nodes + n_y_nodes)
 
         nDerived = 0
@@ -163,37 +148,15 @@ def toy_sine(line_or_sine, Ns, cyclic, x_errors, read_resume=False, adam=False):
         # g.triangle_plot(posterior, filled=True)
         # g.export(filename + f"_{n}_posterior.pdf")
 
-        nodes = np.array(output.posterior.means)
-        np.save("nodes.npy", nodes)
-
-        xs_to_plot = np.concatenate(([0], nodes[:n_x_nodes], [wavelength]))
-        ys_to_plot = f(xs_to_plot, nodes)
-
-        axs[0].plot(
-            xs_to_plot,
-            ys_to_plot,
-            label="N = %i" % N,
-            linewidth=0.75,
-        )
-        axs[0].plot(
-            np.linspace(0, wavelength, 1000),
-            f(np.linspace(0, wavelength, 1000), nodes),
-            label="check I'm plotting blue right",
-        )
         prior_samples = np.loadtxt(
             running_location.joinpath("chains/" + filename + f"_{N}_prior.txt")
         )
 
-        def f_for_plotting(x, params):
-            print(x)
-            return f(x, params)
-
         cbar = plot_contours(
             f, np.linspace(0, wavelength, 100), samples, weights=weights
         )
-        cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3])
+        cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3], label="fgivenx")
         cbar.set_ticklabels(["", r"$1\sigma$", r"$2\sigma$", r"$3\sigma$"])
-        # axs[0].plot()
 
         logZs[ii] = output.logZ
 
