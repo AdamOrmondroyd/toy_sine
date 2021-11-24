@@ -6,7 +6,7 @@ Constant values used throughout.
 
 from numpy import array
 
-n_points = 100
+n_points = 50
 amplitude = 1.0
 wavelength = 1.0
 sigma_x = 0.05
