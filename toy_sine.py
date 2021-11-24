@@ -28,7 +28,7 @@ from linear_interpolation_functions import f_end_nodes as f
 from likelihoods import get_likelihood
 
 
-def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adam=False):
+def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
     """
     Runs polychord on the line or sine data.
 
@@ -47,10 +47,6 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adam=False):
     if x_errors:
         plottitle += " x errors"
         filename += "_x_errors"
-
-    if adam:
-        plottitle += " adam"
-        filename += "_adam"
 
     likelihood = get_likelihood(line_or_sine, x_errors)
 
@@ -129,11 +125,11 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adam=False):
 
         labels = ["p%i" % i for i in range(nDims)]
         # anesthetic isn't working properly
-        # from anesthetic import NestedSamples,
+        from anesthetic import NestedSamples
 
-        # samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
-        # fig, axes = samples.plot_2d(labels)
-        # fig.savefig(filename + "_anesthetic_posterior.pdf")
+        samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
+        fig, axes = samples.plot_2d(labels)
+        fig.savefig(f"plots/{filename}_anesthetic_posterior.pdf")
 
         # import getdist.plots
 
