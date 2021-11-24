@@ -4,7 +4,7 @@
 Generates data_sine.npy.
 """
 
-from numpy import load, save, sin, stack, pi
+from numpy import save, sin, stack, pi
 from numpy.random import default_rng
 from constants import amplitude, n_points, sigma_x, sigma_y, wavelength
 
@@ -30,10 +30,10 @@ def noisy_sine(
 
 
 if __name__ == "__main__":
-    x_errors = False
-    if x_errors:
-        filename = "data_sine_x_errors.npy"
-    else:
-        filename = "data_sine.npy"
-    xs, ys = noisy_sine(n_points, x_errors, amplitude, wavelength, sigma_x, sigma_y)
-    save(filename, stack((xs, ys)))
+    for x_errors in False, True:
+        if x_errors:
+            filename = "data_sine_x_errors.npy"
+        else:
+            filename = "data_sine.npy"
+        xs, ys = noisy_sine(n_points, x_errors, amplitude, wavelength, sigma_x, sigma_y)
+        save(filename, stack((xs, ys)))
