@@ -42,7 +42,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
     xs, ys = get_data(line_or_sine, x_errors)
 
     plottitle = line_or_sine
-    filename = "toy_" + line_or_sine
+    filename = line_or_sine
 
     if x_errors:
         plottitle += " x errors"
@@ -51,8 +51,15 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
     likelihood = get_likelihood(line_or_sine, x_errors)
 
     logZs = np.zeros(len(Ns))
+    fs = [f for i, N in enumerate(Ns)]
+    sampless = []
+    weightss = []
 
-    fig, ax = plt.subplots()
+    if len(Ns) > 1:
+        fig, [ax, ax_logZs] = plt.subplots(2, figsize=(6, 8))
+    else:
+
+        fig, ax = plt.subplots()
 
     if len(Ns) == 1:
         if x_errors:
@@ -112,7 +119,12 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
 
         # run PolyChord
         output = pypolychord.run_polychord(
-            likelihood, nDims, nDerived, settings, prior, dumper
+            likelihood,
+            nDims,
+            nDerived,
+            settings,
+            prior,
+            dumper,
         )
 
         # | Create a paramnames file
@@ -125,42 +137,53 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
 
         labels = ["p%i" % i for i in range(nDims)]
         # anesthetic isn't working properly
-        from anesthetic import NestedSamples
+        # from anesthetic import NestedSamples
 
-        samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
-        fig, axes = samples.plot_2d(labels)
-        fig.savefig(f"plots/{filename}_anesthetic_posterior.pdf")
+        # samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
+        # anesthetic_fig, axes = samples.plot_2d(labels)
+        # anesthetic_fig.savefig(f"plots/{filename}_anesthetic_posterior.pdf")
 
         # import getdist.plots
 
-        if len(Ns) == 1:
-            samples, weights = samples_from_getdist_chains(
-                labels, settings.base_dir + "/" + settings.file_root
-            )
-            # g = getdist.plots.getSubplotPlotter()
-            # g.triangle_plot(posterior, filled=True)
-            # g.export(filename + f"_{n}_posterior.pdf")
+        samples, weights = samples_from_getdist_chains(
+            labels, settings.base_dir + "/" + settings.file_root
+        )
+        sampless.append(samples)
+        weightss.append(weights)
+        # g = getdist.plots.getSubplotPlotter()
+        # g.triangle_plot(posterior, filled=True)
+        # g.export(filename + f"_{n}_posterior.pdf")
 
-            prior_samples = np.loadtxt(
-                running_location.joinpath("chains/" + filename + f"_{N}_prior.txt")
-            )
+        # prior_samples = np.loadtxt(
+        #     running_location.joinpath("chains/" + filename + f"_{N}_prior.txt")
+        # )
 
-            cbar = plot_contours(
-                f, np.linspace(0, wavelength, 100), samples, weights=weights
-            )
-            cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3], label="fgivenx")
-            cbar.set_ticklabels(["", r"$1\sigma$", r"$2\sigma$", r"$3\sigma$"])
+        # cbar = plot_contours(
+        #     f, np.linspace(0, wavelength, 100), samples, weights=weights
+        # )
+        # cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3], label="fgivenx")
+        # cbar.set_ticklabels(["", r"$1\sigma$", r"$2\sigma$", r"$3\sigma$"])
 
         logZs[ii] = output.logZ
 
     ax.set(title=plottitle)
 
+    cbar = plot_contours(
+        fs,
+        np.linspace(0, wavelength, 100),
+        sampless,
+        weights=weightss,
+        logZ=logZs,
+        ax=ax,
+    )
+    cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3], label="fgivenx", ax=ax)
+    cbar.set_ticklabels(["", r"$1\sigma$", r"$2\sigma$", r"$3\sigma$"])
+
     if len(Ns) > 1:
-        ax.plot(Ns, logZs, marker="+")
-        ax.set(xlabel="N", ylabel="log(Z)")
-        plot_filename = running_location.joinpath(
-            "plots/" + filename + "_comparison.png"
-        )
+
+        ax_logZs.plot(Ns, logZs, marker="+")
+        ax_logZs.set(xlabel="N", ylabel="log(Z)")
+        plot_filename = running_location.joinpath("plots/" + filename + ".png")
     else:
         ax.legend(frameon=False)
         plot_filename = running_location.joinpath(
@@ -170,3 +193,4 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
     fig.savefig(plot_filename, dpi=600)
 
     plt.close()
+    return logZs
