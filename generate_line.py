@@ -20,9 +20,7 @@ def noisy_line(
 ):
     """Analogous to noisy_sine but using the "line" function from https://arxiv.org/pdf/1506.09024.pdf ."""
     xs = default_rng().uniform(0.0, wavelength, n_points)
-    ys = f(
-        xs, [wavelength / 4, wavelength * 3 / 4, 0, amplitude, -amplitude, wavelength]
-    )
+    ys = f(xs, [wavelength / 4, wavelength * 3 / 4, 0, amplitude, -amplitude, 0])
     xs += default_rng().normal(0, sigma_x * x_errors, n_points)
     ys += default_rng().normal(0, sigma_y, n_points)
     xs = xs % wavelength
