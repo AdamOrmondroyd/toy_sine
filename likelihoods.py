@@ -9,14 +9,14 @@ from numpy import argsort, concatenate, log, outer, pi, subtract, sum, sqrt
 from scipy.special import erf, logsumexp
 from constants import sigma_x, sigma_y, wavelength
 from data import get_data
-from linear_interpolation_functions import f_end_nodes
+from linear_interpolation_functions import f_end_nodes, get_theta_n, super_model
 
 
 LOG_2_SQRT_2PIλ = log(2) + 0.5 * log(2 * pi * wavelength)
 var_x, var_y = sigma_x ** 2, sigma_y ** 2
 
 
-def get_likelihood(line_or_sine="sine", x_errors=True):
+def get_likelihood(line_or_sine="sine", x_errors=True, vanilla=True):
     """Returns a likelihood function using either the "line" or "sine" data."""
     xs, ys = get_data(line_or_sine, x_errors)
     xs_sorted_index = argsort(xs)
@@ -52,13 +52,34 @@ def get_likelihood(line_or_sine="sine", x_errors=True):
 
             return logL, []
 
-        return x_y_errors_end_nodes_likelihood
+        if vanilla:
+
+            return x_y_errors_end_nodes_likelihood
+
+        else:
+
+            def super_likelihood(params):
+
+                theta_n = get_theta_n(params)
+                return x_y_errors_end_nodes_likelihood(theta_n)
+
+            return super_likelihood
 
     else:
 
-        def y_errors_end_nodes_likelihood(params):
-            logL = -len(ys) * 0.5 * log(2 * pi * var_y)
-            logL += sum(-((ys - f_end_nodes(xs, params)) ** 2) / 2 / var_y)
-            return logL, []
+        if vanilla:
 
-        return y_errors_end_nodes_likelihood
+            def y_errors_end_nodes_likelihood(params):
+                logL = -len(ys) * 0.5 * log(2 * pi * var_y)
+                logL += sum(-((ys - f_end_nodes(xs, params)) ** 2) / 2 / var_y)
+                return logL, []
+
+            return y_errors_end_nodes_likelihood
+        else:
+
+            def y_errors_end_nodes_supermodel_likelihood(params):
+                logL = -len(ys) * 0.5 * log(2 * pi * var_y)
+                logL += sum(-((ys - super_model(xs, params)) ** 2) / 2 / var_y)
+                return logL, []
+
+            return y_errors_end_nodes_supermodel_likelihood
