@@ -5,7 +5,7 @@ Linear interpolation function.
 """
 
 from constants import wavelength
-from numpy import concatenate, interp
+from numpy import ceil, concatenate, interp
 
 
 def f_end_nodes(x, params):
@@ -22,6 +22,23 @@ def f_end_nodes(x, params):
     )
 
 
+def get_theta_n(params):
+    n = ceil(params[0]).astype(int)
+    theta = params[1:]
+    start = n * (n - 1)
+    middle = n * n
+    end = n * (n + 1)
+    theta_n = concatenate(
+        (
+            theta[start:middle],  # internal x
+            theta[-2:-1],  # y0
+            theta[middle:end],  # internal y
+            theta[-1:],  # yn+1
+        )
+    )
+    return theta_n
+
+
 def super_model(x, params):
     """
     Super model which allows the number of parameters being used to vary.
@@ -33,12 +50,5 @@ def super_model(x, params):
     params = [n, [θ1], [θ2], ..., [θN], y0, y_N+1], since the end points can
     be shared between the models with varying n (I think)
     """
-    n = params[0]
-    theta = params[1:]
-    start = n * (n - 1)
-    middle = n * n
-    end = n * (n + 1)
-    theta_n = concatenate(
-        (theta[start:middle], theta[-2:-1], theta[middle:end], theta[-1:0])
-    )
+    theta_n = get_theta_n(params)
     return f_end_nodes(x, theta_n)
