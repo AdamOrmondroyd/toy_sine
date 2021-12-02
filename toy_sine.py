@@ -25,10 +25,11 @@ from constants import (
 )
 from data import get_data
 from linear_interpolation_functions import f_end_nodes as f
+from linear_interpolation_functions import super_model
 from likelihoods import get_likelihood
 
 
-def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
+def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
     """
     Runs polychord on the line or sine data.
 
@@ -44,14 +45,21 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
     plottitle = line_or_sine
     filename = line_or_sine
 
+    if not vanilla:
+        plottitle += " post"
+        filename += "_post"
+
     if x_errors:
         plottitle += " x errors"
         filename += "_x_errors"
 
-    likelihood = get_likelihood(line_or_sine, x_errors)
+    likelihood = get_likelihood(line_or_sine, x_errors, vanilla)
 
     logZs = np.zeros(len(Ns))
-    fs = [f for i, N in enumerate(Ns)]
+    if vanilla:
+        fs = [f for i, N in enumerate(Ns)]
+    else:
+        fs = [super_model for i, N in enumerate(Ns)]
     sampless = []
     weightss = []
 
@@ -92,20 +100,57 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
         print("N = %i" % N)
         n_x_nodes = N
         n_y_nodes = n_x_nodes + 2
-        nDims = int(n_x_nodes + n_y_nodes)
+        if vanilla:
+            nDims = int(n_x_nodes + n_y_nodes)
+        else:
+            nDims = int(N * (N + 1) + 3)
 
         nDerived = 0
 
         # Define the prior (sorted uniform in x, uniform in y)
 
-        def prior(hypercube):
-            """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from amplitude*[-2,2]^D for Yi."""
-            return np.concatenate(
-                (
-                    SortedUniformPrior(0, wavelength)(hypercube[:n_x_nodes]),
-                    UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[n_x_nodes:]),
+        if vanilla:
+
+            def prior(hypercube):
+                """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from amplitude*[-2,2]^D for Yi."""
+                return np.concatenate(
+                    (
+                        SortedUniformPrior(0, wavelength)(hypercube[:n_x_nodes]),
+                        UniformPrior(-2 * amplitude, 2 * amplitude)(
+                            hypercube[n_x_nodes:]
+                        ),
+                    )
                 )
-            )
+
+        else:
+
+            def prior(hypercube):
+                # start with n
+                super_prior = UniformPrior(0, N)(hypercube[0:1])
+                # separate off xp and yp
+                theta = hypercube[1:]
+                # interior nodes
+                for n in np.arange(0, N) + 1:
+                    start = n * (n - 1)
+                    middle = n * n
+                    end = n * (n + 1)
+                    super_prior = np.concatenate(
+                        (
+                            super_prior,
+                            SortedUniformPrior(0, wavelength)(theta[start:middle]),
+                            UniformPrior(-2 * amplitude, 2 * amplitude)(
+                                theta[middle:end]
+                            ),
+                        )
+                    )
+                # finally return with end nodes
+                super_prior = np.concatenate(
+                    (
+                        super_prior,
+                        UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[-2:]),
+                    )
+                )
+                return super_prior
 
         def dumper(live, dead, logweights, logZ, logZerr):
             print("Last dead points:", dead[-1])
@@ -129,8 +174,27 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False):
 
         # | Create a paramnames file
 
-        paramnames = [("p%i" % i, r"x_%i" % i) for i in range(n_x_nodes)]
-        paramnames += [("p%i" % (i + n_x_nodes), r"y_%i" % i) for i in range(n_y_nodes)]
+        if vanilla:
+            paramnames = [("p%i" % i, r"x_%i" % i) for i in range(n_x_nodes)]
+            paramnames += [
+                ("p%i" % (i + n_x_nodes), r"y_%i" % i) for i in range(n_y_nodes)
+            ]
+
+        else:
+            paramnames = [("p0", "n")]
+            for n in np.arange(N) + 1:
+                paramnames += [
+                    ("p%i" % (i + n * (n - 1) + 1), r"x%i_%i" % (i, n))
+                    for i in range(n)
+                ]
+                paramnames += [
+                    ("p%i" % (i + n * n + 1), r"y%i_%i" % (i, n)) for i in range(n)
+                ]
+            paramnames += [
+                ("p%i" % (N * (N + 1) + 1), r"y_0"),
+                ("p%i" % (N * (N + 1) + 2), r"y_%i" % (N)),
+            ]
+
         output.make_paramnames_files(paramnames)
 
         # | Make an anesthetic plot (could also use getdist)
