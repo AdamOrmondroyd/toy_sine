@@ -195,11 +195,11 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
         labels = ["p%i" % i for i in range(nDims)]
         # anesthetic isn't working properly
-        # from anesthetic import NestedSamples
+        from anesthetic import NestedSamples
 
-        # samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
-        # anesthetic_fig, axes = samples.plot_2d(labels)
-        # anesthetic_fig.savefig(f"plots/{filename}_anesthetic_posterior.pdf")
+        samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
+        anesthetic_fig, axes = samples.plot_2d(labels)
+        anesthetic_fig.savefig(f"plots/{filename}_anesthetic_posterior.pdf")
 
         # import getdist.plots
 
@@ -208,19 +208,6 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
         )
         sampless.append(samples)
         weightss.append(weights)
-        # g = getdist.plots.getSubplotPlotter()
-        # g.triangle_plot(posterior, filled=True)
-        # g.export(filename + f"_{n}_posterior.pdf")
-
-        # prior_samples = np.loadtxt(
-        #     running_location.joinpath("chains/" + filename + f"_{N}_prior.txt")
-        # )
-
-        # cbar = plot_contours(
-        #     f, np.linspace(0, wavelength, 100), samples, weights=weights
-        # )
-        # cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3], label="fgivenx")
-        # cbar.set_ticklabels(["", r"$1\sigma$", r"$2\sigma$", r"$3\sigma$"])
 
         logZs[ii] = output.logZ
 
