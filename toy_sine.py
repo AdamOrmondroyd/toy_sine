@@ -46,8 +46,8 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
     filename = line_or_sine
 
     if not vanilla:
-        plottitle += " post"
-        filename += "_post"
+        plottitle += " adaptive"
+        filename += "_adaptive"
 
     if x_errors:
         plottitle += " x errors"
@@ -103,7 +103,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
         if vanilla:
             nDims = int(n_x_nodes + n_y_nodes)
         else:
-            nDims = int(N * (N + 1) + 3)
+            nDims = int(2 * N + 3)
 
         nDerived = 0
 
@@ -130,19 +130,17 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
                 # separate off xp and yp
                 theta = hypercube[1:]
                 # interior nodes
-                for n in np.arange(0, N) + 1:
-                    start = n * (n - 1)
-                    middle = n * n
-                    end = n * (n + 1)
-                    super_prior = np.concatenate(
-                        (
-                            super_prior,
-                            SortedUniformPrior(0, wavelength)(theta[start:middle]),
-                            UniformPrior(-2 * amplitude, 2 * amplitude)(
-                                theta[middle:end]
-                            ),
-                        )
+
+                start = 0
+                middle = N
+                end = 2 * N
+                super_prior = np.concatenate(
+                    (
+                        super_prior,
+                        SortedUniformPrior(0, wavelength)(theta[start:middle]),
+                        UniformPrior(-2 * amplitude, 2 * amplitude)(theta[middle:end]),
                     )
+                )
                 # finally return with end nodes
                 super_prior = np.concatenate(
                     (
@@ -182,17 +180,13 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
         else:
             paramnames = [("p0", "n")]
-            for n in np.arange(N) + 1:
-                paramnames += [
-                    ("p%i" % (i + n * (n - 1) + 1), r"x%i_%i" % (i, n))
-                    for i in range(n)
-                ]
-                paramnames += [
-                    ("p%i" % (i + n * n + 1), r"y%i_%i" % (i, n)) for i in range(n)
-                ]
+            paramnames += [("p%s" % str(i + 1), r"x_%s" % str(i + 1)) for i in range(N)]
             paramnames += [
-                ("p%i" % (N * (N + 1) + 1), r"y_0"),
-                ("p%i" % (N * (N + 1) + 2), r"y_%i" % (N)),
+                ("p%s" % str(i + N + 1), r"y_%s" % str(i + 1)) for i in range(N)
+            ]
+            paramnames += [
+                ("p%s" % str(2 * N + 1), r"y_0"),
+                ("p%s" % str(2 * N + 2), r"y_%s" % str(N + 1)),
             ]
 
         output.make_paramnames_files(paramnames)

@@ -25,9 +25,9 @@ def f_end_nodes(x, params):
 def get_theta_n(params):
     n = ceil(params[0]).astype(int)
     theta = params[1:]
-    start = n * (n - 1)
-    middle = n * n
-    end = n * (n + 1)
+    start = 0
+    middle = n
+    end = 2 * n
     theta_n = concatenate(
         (
             theta[start:middle],  # internal x
