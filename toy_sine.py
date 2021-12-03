@@ -156,7 +156,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
         # settings
         settings = PolyChordSettings(nDims, nDerived)
         settings.file_root = filename + "_%i" % N
-        settings.nlive = 200
+        settings.nlive = 25 * nDims
         settings.do_clustering = True
         settings.read_resume = read_resume
 
