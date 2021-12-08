@@ -45,7 +45,13 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
     plottitle = line_or_sine
     filename = line_or_sine
 
+    if x_errors:
+        plot_filename = line_or_sine + "_x_errors/" + line_or_sine + "_x_errors"
+    else:
+        plot_filename = line_or_sine + "/" + line_or_sine
+
     if not vanilla:
+        plot_filename += "_adaptive"
         plottitle += " adaptive"
         filename += "_adaptive"
 
@@ -69,30 +75,29 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
         fig, ax = plt.subplots()
 
-    if len(Ns) == 1:
-        if x_errors:
-            ax.errorbar(
-                xs,
-                ys,
-                label="data",
-                xerr=sigma_x,
-                yerr=sigma_y,
-                linestyle="None",
-                marker="+",
-                linewidth=0.75,
-                color="k",
-            )
-        else:
-            ax.errorbar(
-                xs,
-                ys,
-                label="data",
-                yerr=sigma_y,
-                linestyle="None",
-                marker="+",
-                linewidth=0.75,
-                color="k",
-            )
+    if x_errors:
+        ax.errorbar(
+            xs,
+            ys,
+            label="data",
+            xerr=sigma_x,
+            yerr=sigma_y,
+            linestyle="None",
+            marker="+",
+            linewidth=0.75,
+            color="k",
+        )
+    else:
+        ax.errorbar(
+            xs,
+            ys,
+            label="data",
+            yerr=sigma_y,
+            linestyle="None",
+            marker="+",
+            linewidth=0.75,
+            color="k",
+        )
         ax.axhline(-1, linewidth=0.75, color="k")
         ax.axhline(1, linewidth=0.75, color="k")
 
@@ -199,7 +204,10 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
         samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
         anesthetic_fig, axes = samples.plot_2d(labels)
-        anesthetic_fig.savefig(f"plots/{filename}_anesthetic_posterior.pdf")
+        anesthetic_fig.savefig(f"plots/{plot_filename}_anesthetic_posterior.pdf")
+        if not vanilla:
+            n_fig, n_axes = samples.plot_2d(["p0"])
+            n_fig.savefig(f"plots/{plot_filename}_n_posterior.png")
 
         # import getdist.plots
 
@@ -228,14 +236,14 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
         ax_logZs.plot(Ns, logZs, marker="+")
         ax_logZs.set(xlabel="N", ylabel="log(Z)")
-        plot_filename = running_location.joinpath("plots/" + filename + ".png")
+        plot_filepath = running_location.joinpath("plots/" + plot_filename + ".png")
     else:
         ax.legend(frameon=False)
-        plot_filename = running_location.joinpath(
-            "plots/" + filename + "_%i.png" % n_x_nodes
+        plot_filepath = running_location.joinpath(
+            "plots/" + plot_filename + "_%i.png" % n_x_nodes
         )
 
-    fig.savefig(plot_filename, dpi=600)
+    fig.savefig(plot_filepath, dpi=600)
 
     plt.close()
     return logZs
