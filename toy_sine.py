@@ -206,7 +206,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
         anesthetic_fig, axes = samples.plot_2d(labels)
         anesthetic_fig.savefig(f"plots/{plot_filename}_{N}_anesthetic_posterior.pdf")
         if not vanilla:
-            n_fig, n_axes = samples.plot_2d(["p0"])
+            n_fig, n_axes = samples.plot_1d(["p0"], plot_type="hist")
             n_fig.savefig(f"plots/{plot_filename}_{N}_n_posterior.png")
 
         # import getdist.plots
