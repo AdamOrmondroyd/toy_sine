@@ -10,7 +10,7 @@ from numpy import ceil, concatenate, interp
 
 def f_end_nodes(x, params):
     """
-    Vectoried linear interpolstion function using end nodes.
+    Vectorised linear interpolstion function using end nodes.
 
     params = [x1, x2, xn, ..., y0, y1, y2, ..., yn, yn+1]
     """
