@@ -5,35 +5,38 @@ Linear interpolation function.
 """
 
 from constants import wavelength
-from numpy import ceil, concatenate, interp
+import numpy as np
 
 
 def f_end_nodes(x, params):
     """
-    Vectorised linear interpolstion function using end nodes.
+    Vectorized linear interpolation function using n nodes.
 
-    params = [x1, x2, xn, ..., y0, y1, y2, ..., yn, yn+1]
+    params in format [y0, x1, y1, x2, y2, ..., xn, yn, yn+1] for n internal nodes
     """
     n = len(params) // 2 - 1
-    return interp(
+    return np.interp(
         x,
-        concatenate(([0], params[:n], [wavelength])),
-        params[n:],
+        np.concatenate(([0], params[1 : 2 * n + 1 : 2], [wavelength])),
+        np.concatenate((params[0 : 2 * n + 2 : 2], params[-1:])),
     )
 
 
 def get_theta_n(params):
-    n = ceil(params[0]).astype(int)
-    theta = params[1:]
-    start = 0
-    middle = n
-    end = 2 * n
-    theta_n = concatenate(
+    """
+    Extracts the first n parameters from
+
+    params = [n, y0, x1, y1, x2, y2, ..., x_nmax, y_nmax, y_nmax+1]
+
+    where nmax is the maximum value of ceil(n).
+
+    returns theta_n = [y0, x1, y1, x2, y2, ..., x_ceil(n), y_ceil(n), y_nmax+1]
+    """
+    n = np.ceil(params[0]).astype(int)
+    theta_n = np.concatenate(
         (
-            theta[start:middle],  # internal x
-            theta[-2:-1],  # y0
-            theta[middle:end],  # internal y
-            theta[-1:],  # yn+1
+            params[1 : 2 * n + 2],  # internal x and y
+            params[-1:],  # y end node
         )
     )
     return theta_n

@@ -101,7 +101,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
         ax.axhline(-1, linewidth=0.75, color="k")
         ax.axhline(1, linewidth=0.75, color="k")
 
-    for ii, N in enumerate(Ns):
+    for iii, N in enumerate(Ns):
         print("N = %i" % N)
         n_x_nodes = N
         n_y_nodes = n_x_nodes + 2
@@ -118,42 +118,38 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
             def prior(hypercube):
                 """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from amplitude*[-2,2]^D for Yi."""
-                return np.concatenate(
-                    (
-                        SortedUniformPrior(0, wavelength)(hypercube[:n_x_nodes]),
-                        UniformPrior(-2 * amplitude, 2 * amplitude)(
-                            hypercube[n_x_nodes:]
-                        ),
+                x_prior = SortedUniformPrior(0, wavelength)(
+                    hypercube[1 : 2 * n_x_nodes + 1 : 2]
+                )
+                y_prior = UniformPrior(-2 * amplitude, 2 * amplitude)(
+                    np.concatenate(
+                        (hypercube[0 : 2 * n_x_nodes + 2 : 2], hypercube[-2:-1])
                     )
                 )
+                xy_prior = np.zeros(len(x_prior) + len(y_prior))
+                xy_prior[1 : 2 * n_x_nodes + 1 : 2] = x_prior
+                xy_prior[0 : 2 * n_x_nodes + 2 : 2] = y_prior[:-1]
+                xy_prior[-1] = y_prior[-1]
+                return xy_prior
 
         else:
 
             def prior(hypercube):
-                # start with n
-                super_prior = UniformPrior(0, N)(hypercube[0:1])
-                # separate off xp and yp
-                theta = hypercube[1:]
-                # interior nodes
-
-                start = 0
-                middle = N
-                end = 2 * N
-                super_prior = np.concatenate(
-                    (
-                        super_prior,
-                        SortedUniformPrior(0, wavelength)(theta[start:middle]),
-                        UniformPrior(-2 * amplitude, 2 * amplitude)(theta[middle:end]),
-                    )
+                n_prior = UniformPrior(0, N)(hypercube[0:1])
+                x_prior = SortedUniformPrior(0, wavelength)(
+                    hypercube[1 : 2 * N + 1 : 2]
                 )
-                # finally return with end nodes
-                super_prior = np.concatenate(
-                    (
-                        super_prior,
-                        UniformPrior(-2 * amplitude, 2 * amplitude)(hypercube[-2:]),
-                    )
+                y_prior = UniformPrior(-2 * amplitude, 2 * amplitude)(
+                    np.concatenate((hypercube[0 : 2 * N + 2 : 2], hypercube[-1:]))
                 )
-                return super_prior
+                full_prior = np.zeros(
+                    1 + len(x_prior) + len(y_prior), dtype=x_prior.dtype
+                )
+                full_prior[0] = n_prior
+                full_prior[2 : 2 * N + 2 : 2] = x_prior
+                full_prior[1 : 2 * N + 3 : 2] = y_prior[:-1]
+                full_prior[-1] = y_prior[-1]
+                return full_prior
 
         def dumper(live, dead, logweights, logZ, logZerr):
             print("Last dead points:", dead[-1])
@@ -177,22 +173,21 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
         # | Create a paramnames file
 
-        if vanilla:
-            paramnames = [("p%i" % i, r"x_%i" % i) for i in range(n_x_nodes)]
-            paramnames += [
-                ("p%i" % (i + n_x_nodes), r"y_%i" % i) for i in range(n_y_nodes)
-            ]
+        paramnames = []
+        i = 0
+        if not vanilla:
+            paramnames += [("p%i" % i, "n")]
+            i += 1
 
-        else:
-            paramnames = [("p0", "n")]
-            paramnames += [("p%s" % str(i + 1), r"x_%s" % str(i + 1)) for i in range(N)]
-            paramnames += [
-                ("p%s" % str(i + N + 1), r"y_%s" % str(i + 1)) for i in range(N)
-            ]
-            paramnames += [
-                ("p%s" % str(2 * N + 1), r"y_0"),
-                ("p%s" % str(2 * N + 2), r"y_%s" % str(N + 1)),
-            ]
+        for ii in range(n_x_nodes):
+            paramnames += [("p%i" % i, r"y_%i" % ii)]
+            i += 1
+            paramnames += [("p%i" % i, r"x_%i" % (ii + 1))]
+            i += 1
+        paramnames += [
+            ("p%i" % i, r"y_%i" % (ii + 1)),
+            ("p%i" % (i + 1), r"y_%i" % (ii + 2)),
+        ]
 
         output.make_paramnames_files(paramnames)
 
@@ -200,14 +195,14 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
         labels = ["p%i" % i for i in range(nDims)]
         # anesthetic isn't working properly
-        from anesthetic import NestedSamples
+        # from anesthetic import NestedSamples
 
-        samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
-        anesthetic_fig, axes = samples.plot_2d(labels)
-        anesthetic_fig.savefig(f"plots/{plot_filename}_{N}_anesthetic_posterior.pdf")
-        if not vanilla:
-            n_fig, n_axes = samples.plot_1d(["p0"], plot_type="hist")
-            n_fig.savefig(f"plots/{plot_filename}_{N}_n_posterior.png")
+        # samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
+        # anesthetic_fig, axes = samples.plot_2d(labels)
+        # anesthetic_fig.savefig(f"plots/{plot_filename}_{N}_anesthetic_posterior.pdf")
+        # if not vanilla:
+        #     n_fig, n_axes = samples.plot_1d(["p0"], plot_type="hist")
+        #     n_fig.savefig(f"plots/{plot_filename}_{N}_n_posterior.png")
 
         # import getdist.plots
 
@@ -217,7 +212,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
         sampless.append(samples)
         weightss.append(weights)
 
-        logZs[ii] = output.logZ
+        logZs[iii] = output.logZ
 
     ax.set(title=plottitle)
 

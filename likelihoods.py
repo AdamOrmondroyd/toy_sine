@@ -26,9 +26,8 @@ def get_likelihood(line_or_sine="sine", x_errors=True, vanilla=True):
 
         def x_y_errors_end_nodes_likelihood(params):
             n = len(params) // 2 - 1
-            x_nodes = params[:n]
-            x_nodes = concatenate(([0], x_nodes, [wavelength]))
-            y_nodes = params[n:]
+            x_nodes = concatenate(([0], params[1 : 2 * n + 1 : 2], [wavelength]))
+            y_nodes = concatenate((params[0 : 2 * n + 2 : 2], params[-1:]))
 
             ms = (y_nodes[1:] - y_nodes[:-1]) / (x_nodes[1:] - x_nodes[:-1])
             cs = y_nodes[:-1] - ms * x_nodes[:-1]
