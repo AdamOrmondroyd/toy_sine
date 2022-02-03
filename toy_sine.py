@@ -42,32 +42,17 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
     xs, ys = get_data(line_or_sine, x_errors)
 
-    plottitle = line_or_sine
     filename = line_or_sine
 
-    if x_errors:
-        plot_filename = line_or_sine + "_x_errors/" + line_or_sine + "_x_errors"
-    else:
-        plot_filename = line_or_sine + "/" + line_or_sine
-
     if not vanilla:
-        plot_filename += "_adaptive"
-        plottitle += " adaptive"
         filename += "_adaptive"
 
     if x_errors:
-        plottitle += " x errors"
         filename += "_x_errors"
 
     likelihood = get_likelihood(line_or_sine, x_errors, vanilla)
 
     logZs = np.zeros(len(Ns))
-    if vanilla:
-        fs = [f for i, N in enumerate(Ns)]
-    else:
-        fs = [super_model for i, N in enumerate(Ns)]
-    sampless = []
-    weightss = []
 
     if len(Ns) > 1:
         fig, [ax, ax_logZs] = plt.subplots(2, figsize=(6, 8))
@@ -191,6 +176,79 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
         output.make_paramnames_files(paramnames)
 
+        logZs[iii] = output.logZ
+
+    return logZs, settings
+
+
+def plot_toy_sine(line_or_sine, Ns, x_errors, logZs, settings, vanilla=True):
+    """
+    Plot the results from toy_sine()
+    """
+    running_location = Path(__file__).parent
+
+    plottitle = line_or_sine
+    if x_errors:
+        plot_filename = line_or_sine + "_x_errors/" + line_or_sine + "_x_errors"
+    else:
+        plot_filename = line_or_sine + "/" + line_or_sine
+
+    if not vanilla:
+        plot_filename += "_adaptive"
+        plottitle += " adaptive"
+
+    if x_errors:
+        plottitle += " x errors"
+
+    if vanilla:
+        fs = [f for i, N in enumerate(Ns)]
+    else:
+        fs = [super_model for i, N in enumerate(Ns)]
+
+    sampless = []
+    weightss = []
+
+    if len(Ns) > 1:
+        fig, [ax, ax_logZs] = plt.subplots(2, figsize=(6, 8))
+    else:
+
+        fig, ax = plt.subplots()
+
+    xs, ys = get_data(line_or_sine, x_errors)
+    if x_errors:
+        ax.errorbar(
+            xs,
+            ys,
+            label="data",
+            xerr=sigma_x,
+            yerr=sigma_y,
+            linestyle="None",
+            marker="+",
+            linewidth=0.75,
+            color="k",
+        )
+    else:
+        ax.errorbar(
+            xs,
+            ys,
+            label="data",
+            yerr=sigma_y,
+            linestyle="None",
+            marker="+",
+            linewidth=0.75,
+            color="k",
+        )
+    ax.axhline(-1, linewidth=0.75, color="k")
+    ax.axhline(1, linewidth=0.75, color="k")
+    for iii, N in enumerate(Ns):
+        print("N = %i" % N)
+        n_x_nodes = N
+        n_y_nodes = n_x_nodes + 2
+        if vanilla:
+            nDims = int(n_x_nodes + n_y_nodes)
+        else:
+            nDims = int(2 * N + 3)
+
         # | Make an anesthetic plot (could also use getdist)
 
         labels = ["p%i" % i for i in range(nDims)]
@@ -211,8 +269,6 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
         )
         sampless.append(samples)
         weightss.append(weights)
-
-        logZs[iii] = output.logZ
 
     ax.set(title=plottitle)
 
@@ -241,4 +297,3 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
     fig.savefig(plot_filepath, dpi=600)
 
     plt.close()
-    return logZs
