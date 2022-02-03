@@ -137,10 +137,10 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
             def prior(hypercube):
                 n_prior = UniformPrior(0, N)(hypercube[0:1])
                 x_prior = SortedUniformPrior(0, wavelength)(
-                    hypercube[1 : 2 * N + 1 : 2]
+                    hypercube[1 : 2 * N + 2 : 2]
                 )
                 y_prior = UniformPrior(-2 * amplitude, 2 * amplitude)(
-                    np.concatenate((hypercube[0 : 2 * N + 2 : 2], hypercube[-1:]))
+                    np.concatenate((hypercube[1 : 2 * N + 3 : 2], hypercube[-1:]))
                 )
                 full_prior = np.zeros(
                     1 + len(x_prior) + len(y_prior), dtype=x_prior.dtype
