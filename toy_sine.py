@@ -98,8 +98,8 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
             linewidth=0.75,
             color="k",
         )
-        ax.axhline(-1, linewidth=0.75, color="k")
-        ax.axhline(1, linewidth=0.75, color="k")
+    ax.axhline(-1, linewidth=0.75, color="k")
+    ax.axhline(1, linewidth=0.75, color="k")
 
     for iii, N in enumerate(Ns):
         print("N = %i" % N)
