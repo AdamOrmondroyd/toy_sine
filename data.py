@@ -5,7 +5,7 @@ Get data from sine_data.npy or line_data.npy.
 """
 import os
 from pathlib import Path
-from numpy import load
+import numpy as np
 
 
 def get_data(line_or_sine, x_errors):
@@ -15,5 +15,5 @@ def get_data(line_or_sine, x_errors):
         filename = location.joinpath("data_{}_x_errors.npy".format(line_or_sine))
     else:
         filename = location.joinpath("data_{}.npy".format(line_or_sine))
-    data = load(filename)
+    data = np.load(filename)
     return data[0], data[1]

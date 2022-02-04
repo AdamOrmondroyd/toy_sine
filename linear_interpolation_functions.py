@@ -3,9 +3,8 @@
 
 Linear interpolation function.
 """
-
-from constants import wavelength
 import numpy as np
+from constants import wavelength
 
 
 def f_end_nodes(x, params):

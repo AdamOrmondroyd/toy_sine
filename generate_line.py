@@ -4,7 +4,7 @@
 Generates data_line.npy.
 """
 
-from numpy import save, stack, pi
+import numpy as np
 from numpy.random import default_rng
 from constants import amplitude, n_points, sigma_x, sigma_y, wavelength
 from linear_interpolation_functions import f_end_nodes as f
@@ -34,4 +34,4 @@ if __name__ == "__main__":
         else:
             filename = "data_line.npy"
         xs, ys = noisy_line(n_points, x_errors, amplitude, wavelength, sigma_x, sigma_y)
-        save(filename, stack((xs, ys)))
+        np.save(filename, np.stack((xs, ys)))

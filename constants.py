@@ -4,7 +4,7 @@
 Constant values used throughout.
 """
 
-from numpy import array
+import numpy as np
 
 n_points = 50
 amplitude = 1.0
