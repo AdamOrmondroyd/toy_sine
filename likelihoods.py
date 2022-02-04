@@ -34,13 +34,13 @@ def get_likelihood(line_or_sine="sine", x_errors=True, vanilla=True):
 
             # save recalculating things
 
-            q = ms ** 2 * var_x + var_y
+            q = (np.outer(var_x, ms ** 2).T + var_y).T
             delta = np.subtract.outer(ys, cs)
-            beta = (xs * var_x + (delta * ms * var_y).T).T / q
+            beta = (xs * var_x + (delta * ms).T * var_y).T / q
             gamma = (np.outer(xs, ms) - delta) ** 2 / 2 / q
 
-            t_minus = np.sqrt(q / 2) / (sigma_x * sigma_y) * (x_nodes[:-1] - beta)
-            t_plus = np.sqrt(q / 2) / (sigma_x * sigma_y) * (x_nodes[1:] - beta)
+            t_minus = (np.sqrt(q / 2).T / (sigma_x * sigma_y)).T * (x_nodes[:-1] - beta)
+            t_plus = (np.sqrt(q / 2).T / (sigma_x * sigma_y)).T * (x_nodes[1:] - beta)
 
             logL = -len(xs) * LOG_2_SQRT_2PIλ
             logL = np.sum(
@@ -68,17 +68,17 @@ def get_likelihood(line_or_sine="sine", x_errors=True, vanilla=True):
 
         if vanilla:
 
-            def y_errors_end_nodes_likelihood(params):
-                logL = -len(ys) * 0.5 * np.log(2 * np.pi * var_y)
-                logL += np.sum(-((ys - f_end_nodes(xs, params)) ** 2) / 2 / var_y)
-                return logL, []
-
-            return y_errors_end_nodes_likelihood
+            f = f_end_nodes
         else:
+            f = super_model
 
-            def y_errors_end_nodes_supermodel_likelihood(params):
-                logL = -len(ys) * 0.5 * np.log(2 * np.pi * var_y)
-                logL += np.sum(-((ys - super_model(xs, params)) ** 2) / 2 / var_y)
-                return logL, []
+        def y_errors_end_nodes_likelihood(params):
+            if hasattr(var_y, "__len__"):
+                logL = -0.5 * np.sum(np.log(2 * np.pi * var_y))
+            else:
+                logL = -0.5 * len(ys) * np.log(2 * np.pi * var_y)
 
-            return y_errors_end_nodes_supermodel_likelihood
+            logL += np.sum(-((ys - f(xs, params)) ** 2) / 2 / var_y)
+            return logL, []
+
+        return y_errors_end_nodes_likelihood
