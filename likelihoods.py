@@ -19,8 +19,6 @@ var_x, var_y = sigma_x ** 2, sigma_y ** 2
 def get_likelihood(line_or_sine="sine", x_errors=True, vanilla=True):
     """Returns a likelihood function using either the "line" or "sine" data."""
     xs, ys = get_data(line_or_sine, x_errors)
-    xs_sorted_index = np.argsort(xs)
-    xs, ys = xs[xs_sorted_index], ys[xs_sorted_index]
 
     if x_errors:
 
