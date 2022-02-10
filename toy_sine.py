@@ -108,7 +108,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
                 )
                 y_prior = UniformPrior(-2 * amplitude, 2 * amplitude)(
                     np.concatenate(
-                        (hypercube[0 : 2 * n_x_nodes + 2 : 2], hypercube[-2:-1])
+                        (hypercube[0 : 2 * n_x_nodes + 2 : 2], hypercube[-1:])
                     )
                 )
                 xy_prior = np.zeros(len(x_prior) + len(y_prior))
