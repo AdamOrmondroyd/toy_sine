@@ -16,7 +16,7 @@ LOG_2_SQRT_2PIλ = np.log(2) + 0.5 * np.log(2 * np.pi * wavelength)
 var_x, var_y = sigma_x ** 2, sigma_y ** 2
 
 
-def get_likelihood(line_or_sine="sine", x_errors=True, vanilla=True):
+def get_likelihood(line_or_sine="sine", x_errors=True, adaptive=False):
     """Returns a likelihood function using either the "line" or "sine" data."""
     xs, ys = get_data(line_or_sine, x_errors)
 
@@ -49,7 +49,7 @@ def get_likelihood(line_or_sine="sine", x_errors=True, vanilla=True):
 
             return logL, []
 
-        if vanilla:
+        if not adaptive:
 
             return x_y_errors_end_nodes_likelihood
 
@@ -64,11 +64,11 @@ def get_likelihood(line_or_sine="sine", x_errors=True, vanilla=True):
 
     else:
 
-        if vanilla:
-
-            f = f_end_nodes
-        else:
+        if adaptive:
             f = super_model
+
+        else:
+            f = f_end_nodes
 
         def y_errors_end_nodes_likelihood(params):
             if hasattr(var_y, "__len__"):

@@ -29,7 +29,7 @@ from linear_interpolation_functions import super_model
 from likelihoods import get_likelihood
 
 
-def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
+def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
     """
     Runs polychord on the line or sine data.
 
@@ -44,13 +44,13 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
     filename = line_or_sine
 
-    if not vanilla:
+    if adaptive:
         filename += "_adaptive"
 
     if x_errors:
         filename += "_x_errors"
 
-    likelihood = get_likelihood(line_or_sine, x_errors, vanilla)
+    likelihood = get_likelihood(line_or_sine, x_errors, adaptive)
 
     logZs = np.zeros(len(Ns))
 
@@ -90,34 +90,16 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
         print("N = %i" % N)
         n_x_nodes = N
         n_y_nodes = n_x_nodes + 2
-        if vanilla:
-            nDims = int(n_x_nodes + n_y_nodes)
-        else:
+        if adaptive:
             nDims = int(2 * N + 3)
+        else:
+            nDims = int(n_x_nodes + n_y_nodes)
 
         nDerived = 0
 
         # Define the prior (sorted uniform in x, uniform in y)
 
-        if vanilla:
-
-            def prior(hypercube):
-                """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from amplitude*[-2,2]^D for Yi."""
-                x_prior = SortedUniformPrior(0, wavelength)(
-                    hypercube[1 : 2 * n_x_nodes + 1 : 2]
-                )
-                y_prior = UniformPrior(-2 * amplitude, 2 * amplitude)(
-                    np.concatenate(
-                        (hypercube[0 : 2 * n_x_nodes + 2 : 2], hypercube[-1:])
-                    )
-                )
-                xy_prior = np.zeros(len(x_prior) + len(y_prior))
-                xy_prior[1 : 2 * n_x_nodes + 1 : 2] = x_prior
-                xy_prior[0 : 2 * n_x_nodes + 2 : 2] = y_prior[:-1]
-                xy_prior[-1] = y_prior[-1]
-                return xy_prior
-
-        else:
+        if adaptive:
 
             def prior(hypercube):
                 n_prior = UniformPrior(0, N)(hypercube[0:1])
@@ -135,6 +117,24 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
                 full_prior[1 : 2 * N + 3 : 2] = y_prior[:-1]
                 full_prior[-1] = y_prior[-1]
                 return full_prior
+
+        else:
+
+            def prior(hypercube):
+                """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from amplitude*[-2,2]^D for Yi."""
+                x_prior = SortedUniformPrior(0, wavelength)(
+                    hypercube[1 : 2 * n_x_nodes + 1 : 2]
+                )
+                y_prior = UniformPrior(-2 * amplitude, 2 * amplitude)(
+                    np.concatenate(
+                        (hypercube[0 : 2 * n_x_nodes + 2 : 2], hypercube[-1:])
+                    )
+                )
+                xy_prior = np.zeros(len(x_prior) + len(y_prior))
+                xy_prior[1 : 2 * n_x_nodes + 1 : 2] = x_prior
+                xy_prior[0 : 2 * n_x_nodes + 2 : 2] = y_prior[:-1]
+                xy_prior[-1] = y_prior[-1]
+                return xy_prior
 
         def dumper(live, dead, logweights, logZ, logZerr):
             print("Last dead points:", dead[-1])
@@ -160,7 +160,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
 
         paramnames = []
         i = 0
-        if not vanilla:
+        if adaptive:
             paramnames += [("p%i" % i, "n")]
             i += 1
 
@@ -181,7 +181,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, vanilla=True):
     return logZs, settings
 
 
-def plot_toy_sine(line_or_sine, Ns, x_errors, logZs, settings, vanilla=True):
+def plot_toy_sine(line_or_sine, Ns, x_errors, logZs, settings, adaptive=False):
     """
     Plot the results from toy_sine()
     """
@@ -193,17 +193,17 @@ def plot_toy_sine(line_or_sine, Ns, x_errors, logZs, settings, vanilla=True):
     else:
         plot_filename = line_or_sine + "/" + line_or_sine
 
-    if not vanilla:
+    if adaptive:
         plot_filename += "_adaptive"
         plottitle += " adaptive"
 
     if x_errors:
         plottitle += " x errors"
 
-    if vanilla:
-        fs = [f for i, N in enumerate(Ns)]
-    else:
+    if adaptive:
         fs = [super_model for i, N in enumerate(Ns)]
+    else:
+        fs = [f for i, N in enumerate(Ns)]
 
     sampless = []
     weightss = []
@@ -244,10 +244,10 @@ def plot_toy_sine(line_or_sine, Ns, x_errors, logZs, settings, vanilla=True):
         print("N = %i" % N)
         n_x_nodes = N
         n_y_nodes = n_x_nodes + 2
-        if vanilla:
-            nDims = int(n_x_nodes + n_y_nodes)
-        else:
+        if adaptive:
             nDims = int(2 * N + 3)
+        else:
+            nDims = int(n_x_nodes + n_y_nodes)
 
         # | Make an anesthetic plot (could also use getdist)
 
