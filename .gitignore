@@ -8,6 +8,6 @@ toy_sine.sh
 *.pdf
 *.png
 *.ipynb
-submitpython*
+submit*
 machine.file.*
 slurm-*
