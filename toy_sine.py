@@ -11,6 +11,7 @@ import pypolychord
 from pypolychord.settings import PolyChordSettings
 from pypolychord.priors import UniformPrior, SortedUniformPrior
 from fgivenx import plot_contours, samples_from_getdist_chains
+from linf import Linf, AdaptiveLinf, LinfPrior, AdaptiveLinfPrior, LinfLikelihood
 
 try:
     from mpi4py import MPI
@@ -50,41 +51,20 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
     if x_errors:
         filename += "_x_errors"
 
+    x_data, y_data = get_data(line_or_sine, x_errors)
+
+    if x_errors:
+        sigma = np.array([sigma_x, sigma_y])
+    else:
+        sigma = sigma_y
+
+    likelihood = LinfLikelihood(
+        0, wavelength, -2 * amplitude, 2 * amplitude, sigma, adaptive
+    )
+
     likelihood = get_likelihood(line_or_sine, x_errors, adaptive)
 
     logZs = np.zeros(len(Ns))
-
-    if len(Ns) > 1:
-        fig, [ax, ax_logZs] = plt.subplots(2, figsize=(6, 8))
-    else:
-
-        fig, ax = plt.subplots()
-
-    if x_errors:
-        ax.errorbar(
-            xs,
-            ys,
-            label="data",
-            xerr=sigma_x,
-            yerr=sigma_y,
-            linestyle="None",
-            marker="+",
-            linewidth=0.75,
-            color="k",
-        )
-    else:
-        ax.errorbar(
-            xs,
-            ys,
-            label="data",
-            yerr=sigma_y,
-            linestyle="None",
-            marker="+",
-            linewidth=0.75,
-            color="k",
-        )
-    ax.axhline(-1, linewidth=0.75, color="k")
-    ax.axhline(1, linewidth=0.75, color="k")
 
     for iii, N in enumerate(Ns):
         print("N = %i" % N)
@@ -101,40 +81,11 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
 
         if adaptive:
 
-            def prior(hypercube):
-                n_prior = UniformPrior(0, N)(hypercube[0:1])
-                x_prior = SortedUniformPrior(0, wavelength)(
-                    hypercube[2 : 2 * N + 2 : 2]
-                )
-                y_prior = UniformPrior(-2 * amplitude, 2 * amplitude)(
-                    np.concatenate((hypercube[1 : 2 * N + 3 : 2], hypercube[-1:]))
-                )
-                full_prior = np.zeros(
-                    1 + len(x_prior) + len(y_prior), dtype=x_prior.dtype
-                )
-                full_prior[0] = n_prior
-                full_prior[2 : 2 * N + 2 : 2] = x_prior
-                full_prior[1 : 2 * N + 3 : 2] = y_prior[:-1]
-                full_prior[-1] = y_prior[-1]
-                return full_prior
+            prior = AdaptiveLinfPrior(0, wavelength, -2 * amplitude, 2 * amplitude, N)
 
         else:
 
-            def prior(hypercube):
-                """Sorted uniform prior from Xi from [0, wavelength], unifrom prior from amplitude*[-2,2]^D for Yi."""
-                x_prior = SortedUniformPrior(0, wavelength)(
-                    hypercube[1 : 2 * n_x_nodes + 1 : 2]
-                )
-                y_prior = UniformPrior(-2 * amplitude, 2 * amplitude)(
-                    np.concatenate(
-                        (hypercube[0 : 2 * n_x_nodes + 2 : 2], hypercube[-1:])
-                    )
-                )
-                xy_prior = np.zeros(len(x_prior) + len(y_prior))
-                xy_prior[1 : 2 * n_x_nodes + 1 : 2] = x_prior
-                xy_prior[0 : 2 * n_x_nodes + 2 : 2] = y_prior[:-1]
-                xy_prior[-1] = y_prior[-1]
-                return xy_prior
+            prior = LinfPrior(0, wavelength, -2 * amplitude, 2 * amplitude)
 
         def dumper(live, dead, logweights, logZ, logZerr):
             print("Last dead points:", dead[-1])
@@ -178,13 +129,22 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
 
         logZs[iii] = output.logZ
 
-    return logZs, settings
+    np.save(
+        f'likelihoods/{line_or_sine}{"_x_errors" if x_errors else ""}{"_adaptive" if adaptive else ""}_logZs.npy',
+        logZs,
+    )
+
+    return logZs
 
 
-def plot_toy_sine(line_or_sine, Ns, x_errors, logZs, settings, adaptive=False):
+def plot_toy_sine(line_or_sine, Ns, x_errors, adaptive=False, show=False):
     """
     Plot the results from toy_sine()
     """
+    logZs = np.load(
+        f'likelihoods/{line_or_sine}{"_x_errors" if x_errors else ""}{"_adaptive" if adaptive else ""}_logZs.npy'
+    )
+
     running_location = Path(__file__).parent
 
     plottitle = line_or_sine
@@ -201,9 +161,9 @@ def plot_toy_sine(line_or_sine, Ns, x_errors, logZs, settings, adaptive=False):
         plottitle += " x errors"
 
     if adaptive:
-        fs = [super_model for i, N in enumerate(Ns)]
+        fs = [AdaptiveLinf(0, wavelength) for i, N in enumerate(Ns)]
     else:
-        fs = [f for i, N in enumerate(Ns)]
+        fs = [Linf(0, wavelength) for i, N in enumerate(Ns)]
 
     sampless = []
     weightss = []
@@ -263,10 +223,17 @@ def plot_toy_sine(line_or_sine, Ns, x_errors, logZs, settings, adaptive=False):
         #     n_fig.savefig(f"plots/{plot_filename}_{N}_n_posterior.png")
 
         # import getdist.plots
+        chains_path = "chains/"
+        chains_path += line_or_sine
 
-        samples, weights = samples_from_getdist_chains(
-            labels, settings.base_dir + "/" + settings.file_root
-        )
+        if adaptive:
+            chains_path += "_adaptive"
+
+        if x_errors:
+            chains_path += "_x_errors"
+        chains_path += f"_{N}"
+
+        samples, weights = samples_from_getdist_chains(labels, chains_path)
         sampless.append(samples)
         weightss.append(weights)
 
@@ -291,9 +258,11 @@ def plot_toy_sine(line_or_sine, Ns, x_errors, logZs, settings, adaptive=False):
     else:
         ax.legend(frameon=False)
         plot_filepath = running_location.joinpath(
-            "plots/" + plot_filename + "_%i.png" % n_x_nodes
+            "plots/" + plot_filename + "_%i_linf.png" % n_x_nodes
         )
 
     fig.savefig(plot_filepath, dpi=600)
+    if show:
+        plt.show()
 
     plt.close()
