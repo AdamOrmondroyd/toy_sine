@@ -25,9 +25,6 @@ from constants import (
     wavelength,
 )
 from data import get_data
-from linear_interpolation_functions import f_end_nodes as f
-from linear_interpolation_functions import super_model
-from likelihoods import get_likelihood
 
 
 def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
@@ -58,11 +55,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
     else:
         sigma = sigma_y
 
-    likelihood = LinfLikelihood(
-        0, wavelength, -2 * amplitude, 2 * amplitude, sigma, adaptive
-    )
-
-    likelihood = get_likelihood(line_or_sine, x_errors, adaptive)
+    likelihood = LinfLikelihood(0, wavelength, x_data, y_data, sigma, adaptive)
 
     logZs = np.zeros(len(Ns))
 
