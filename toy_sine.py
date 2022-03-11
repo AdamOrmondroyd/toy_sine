@@ -5,6 +5,7 @@ Toy sine example for getting my head around pypolychord.
 """
 
 from pathlib import Path
+from selectors import EpollSelector
 import numpy as np
 import matplotlib.pyplot as plt
 import pypolychord
@@ -36,10 +37,6 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
     Option for cyclic boundary conditions.
     """
 
-    running_location = Path(__file__).parent
-
-    xs, ys = get_data(line_or_sine, x_errors)
-
     filename = line_or_sine
 
     if adaptive:
@@ -61,12 +58,11 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
 
     for iii, N in enumerate(Ns):
         print("N = %i" % N)
-        n_x_nodes = N
-        n_y_nodes = n_x_nodes + 2
+        n_x_nodes = N - 2
+        n_y_nodes = N
+        nDims = int(n_x_nodes + n_y_nodes)
         if adaptive:
-            nDims = int(2 * N + 3)
-        else:
-            nDims = int(n_x_nodes + n_y_nodes)
+            nDims += 1
 
         nDerived = 0
 
@@ -130,7 +126,7 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
     return logZs
 
 
-def plot_toy_sine(line_or_sine, Ns, x_errors, adaptive=False, show=False):
+def plot_toy_sine(line_or_sine, N, x_errors, adaptive=False, show=False, ax=None):
     """
     Plot the results from toy_sine()
     """
@@ -154,17 +150,15 @@ def plot_toy_sine(line_or_sine, Ns, x_errors, adaptive=False, show=False):
         plottitle += " x errors"
 
     if adaptive:
-        fs = [AdaptiveLinf(0, wavelength) for i, N in enumerate(Ns)]
+        fs = AdaptiveLinf(0, wavelength)
     else:
-        fs = [Linf(0, wavelength) for i, N in enumerate(Ns)]
+        fs = Linf(0, wavelength)
 
-    sampless = []
-    weightss = []
-
-    if len(Ns) > 1:
-        fig, [ax, ax_logZs] = plt.subplots(2, figsize=(6, 8))
+    if ax:
+        show = False
+        save = False
     else:
-
+        save = True
         fig, ax = plt.subplots()
 
     xs, ys = get_data(line_or_sine, x_errors)
@@ -193,68 +187,64 @@ def plot_toy_sine(line_or_sine, Ns, x_errors, adaptive=False, show=False):
         )
     ax.axhline(-1, linewidth=0.75, color="k")
     ax.axhline(1, linewidth=0.75, color="k")
-    for iii, N in enumerate(Ns):
-        print("N = %i" % N)
-        n_x_nodes = N
-        n_y_nodes = n_x_nodes + 2
-        if adaptive:
-            nDims = int(2 * N + 3)
-        else:
-            nDims = int(n_x_nodes + n_y_nodes)
+    print("N = %i" % N)
+    n_x_nodes = N - 2
+    n_y_nodes = N
+    nDims = n_x_nodes + n_y_nodes
+    if adaptive:
+        nDims += 1
 
-        # | Make an anesthetic plot (could also use getdist)
+    # | Make an anesthetic plot (could also use getdist)
 
-        labels = ["p%i" % i for i in range(nDims)]
-        # anesthetic isn't working properly
-        # from anesthetic import NestedSamples
+    labels = ["p%i" % i for i in range(nDims)]
+    # anesthetic isn't working properly
+    # from anesthetic import NestedSamples
 
-        # samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
-        # anesthetic_fig, axes = samples.plot_2d(labels)
-        # anesthetic_fig.savefig(f"plots/{plot_filename}_{N}_anesthetic_posterior.pdf")
-        # if not vanilla:
-        #     n_fig, n_axes = samples.plot_1d(["p0"], plot_type="hist")
-        #     n_fig.savefig(f"plots/{plot_filename}_{N}_n_posterior.png")
+    # samples = NestedSamples(root=settings.base_dir + "/" + settings.file_root)
+    # anesthetic_fig, axes = samples.plot_2d(labels)
+    # anesthetic_fig.savefig(f"plots/{plot_filename}_{N}_anesthetic_posterior.pdf")
+    # if not vanilla:
+    #     n_fig, n_axes = samples.plot_1d(["p0"], plot_type="hist")
+    #     n_fig.savefig(f"plots/{plot_filename}_{N}_n_posterior.png")
 
-        # import getdist.plots
-        chains_path = "chains/"
-        chains_path += line_or_sine
+    # import getdist.plots
+    chains_path = "chains/"
+    chains_path += line_or_sine
 
-        if adaptive:
-            chains_path += "_adaptive"
+    if adaptive:
+        chains_path += "_adaptive"
 
-        if x_errors:
-            chains_path += "_x_errors"
-        chains_path += f"_{N}"
+    if x_errors:
+        chains_path += "_x_errors"
+    chains_path += f"_{N}"
 
-        samples, weights = samples_from_getdist_chains(labels, chains_path)
-        sampless.append(samples)
-        weightss.append(weights)
+    samples, weights = samples_from_getdist_chains(labels, chains_path)
 
     ax.set(title=plottitle)
 
     cbar = plot_contours(
         fs,
         np.linspace(0, wavelength, 100),
-        sampless,
-        weights=weightss,
-        logZ=logZs,
+        samples,
+        weights=weights,
+        # logZ=logZs,
         ax=ax,
     )
     cbar = plt.colorbar(cbar, ticks=[0, 1, 2, 3], label="fgivenx", ax=ax)
     cbar.set_ticklabels(["", r"$1\sigma$", r"$2\sigma$", r"$3\sigma$"])
 
-    if len(Ns) > 1:
+    # if len(Ns) > 1:
 
-        ax_logZs.plot(Ns, logZs, marker="+")
-        ax_logZs.set(xlabel="N", ylabel="log(Z)")
-        plot_filepath = running_location.joinpath("plots/" + plot_filename + ".png")
-    else:
-        ax.legend(frameon=False)
-        plot_filepath = running_location.joinpath(
-            "plots/" + plot_filename + "_%i_linf.png" % n_x_nodes
-        )
-
-    fig.savefig(plot_filepath, dpi=600)
+    #     ax_logZs.plot(Ns, logZs, marker="+")
+    #     ax_logZs.set(xlabel="N", ylabel="log(Z)")
+    #     plot_filepath = running_location.joinpath("plots/" + plot_filename + ".png")
+    # else:
+    ax.legend(frameon=False)
+    plot_filepath = running_location.joinpath(
+        "plots/" + plot_filename + "_%i_linf.png" % n_x_nodes
+    )
+    if save:
+        fig.savefig(plot_filepath, dpi=600)
     if show:
         plt.show()
 
