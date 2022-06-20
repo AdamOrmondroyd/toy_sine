@@ -28,7 +28,9 @@ from constants import (
 from data import get_data
 
 
-def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
+def toy_sine(
+    line_or_sine, Ns, x_errors, read_resume=False, adaptive=False, repeat_num=None
+):
     """
     Runs polychord on the line or sine data.
 
@@ -81,10 +83,13 @@ def toy_sine(line_or_sine, Ns, x_errors, read_resume=False, adaptive=False):
 
         # settings
         settings = PolyChordSettings(nDims, nDerived)
-        settings.file_root = filename + "_%i" % N
+        settings.file_root = filename + f"_{N}"
+        if repeat_num is not None:
+            settings.file_root += f"_{repeat_num}"
         settings.nlive = 25 * nDims
         settings.do_clustering = True
         settings.read_resume = read_resume
+        settings.num_repeats = 5 * nDims
 
         # run PolyChord
         output = pypolychord.run_polychord(

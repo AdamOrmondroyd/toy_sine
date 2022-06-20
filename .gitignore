@@ -11,3 +11,4 @@ toy_sine.sh
 submit*
 machine.file.*
 slurm-*
+env*/
