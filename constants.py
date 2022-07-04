@@ -9,5 +9,5 @@ import numpy as np
 n_points = 50
 amplitude = 1.0
 wavelength = 1.0
-sigma_x = 0.05 * np.ones(n_points)
-sigma_y = 0.05 * np.ones(n_points)
+sigma_x = 0.05  # * np.ones(n_points)
+sigma_y = 0.05  # * np.ones(n_points)
