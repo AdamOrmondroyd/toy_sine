@@ -22,7 +22,8 @@ def noisy_flat(
     xs = default_rng().uniform(0.0, wavelength, n_points)
     xs += default_rng().normal(0, sigma_x * x_errors, n_points)
     ys = default_rng().normal(0, sigma_y, n_points)
-    xs = xs % wavelength
+    ys = ys[(xs >= 0) & (xs <= wavelength)]
+    xs = xs[(xs >= 0) & (xs <= wavelength)]
     return xs, ys
 
 
