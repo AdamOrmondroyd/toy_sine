@@ -9,8 +9,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pypolychord
 from pypolychord.settings import PolyChordSettings
+
 # from fgivenx import plot_contours, samples_from_getdist_chains
 from linf import Linf, AdaptiveLinf, LinfPrior, AdaptiveLinfPrior, LinfLikelihood
+from pymultinest.solve import solve
 
 try:
     from mpi4py import MPI
@@ -51,6 +53,9 @@ def toy_sine(
         sigma = sigma_y
 
     likelihood = LinfLikelihood(0, wavelength, x_data, y_data, sigma, adaptive)
+
+    def multihood(theta):
+        return likelihood(theta)[0]
 
     print("N = %i" % N)
     n_x_nodes = max(N - 2, 0)
@@ -111,7 +116,16 @@ def toy_sine(
 
     output.make_paramnames_files(paramnames)
 
-    return output.logZ
+    solve(
+        LogLikelihood=multihood,
+        Prior=prior,
+        n_dims=nDims,
+        outputfiles_basename="multinest_chains/" + settings.file_root,
+        resume=False,
+        verbose=True,
+        n_live_points=25 * nDims,
+    )
+    return  # output.logZ
 
 
 # def plot_toy_sine(line_or_sine, N, x_errors, adaptive=False, show=False, ax=None):
@@ -237,4 +251,3 @@ def toy_sine(
 #     #     n_fig.savefig(f"plots/{plot_filename}_{N}_n_posterior.png")
 
 #     # import getdist.plots
-  
