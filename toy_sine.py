@@ -9,6 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pypolychord
 from pypolychord.settings import PolyChordSettings
+from pymultinest.solve import solve
+
 # from fgivenx import plot_contours, samples_from_getdist_chains
 from linf import Linf, AdaptiveLinf, LinfPrior, AdaptiveLinfPrior, LinfLikelihood
 
@@ -24,10 +26,40 @@ from constants import (
     wavelength,
 )
 from data import get_data
+from paramnames import paramnames_file
+
+from pyclustering.cluster.xmeans import xmeans
+from pyclustering.cluster.center_initializer import kmeans_plusplus_initializer
+
+
+def cluster(
+    position_matrix,
+):
+    print("started clustering")
+    amount_initial_centers = 1
+    initial_centers = kmeans_plusplus_initializer(
+        position_matrix, amount_initial_centers
+    ).initialize()
+
+    xmeans_instance = xmeans(position_matrix, initial_centers, 8, ccore=False)
+    xmeans_instance.process()
+    clusters = xmeans_instance.get_clusters()
+    cluster_list = np.zeros(len(position_matrix))
+    for i, cluster in enumerate(clusters):
+        cluster_list[cluster] = i
+    print("finished clustering")
+    return cluster_list
 
 
 def toy_sine(
-    line_or_sine, N, x_errors, read_resume=False, adaptive=False, repeat_num=None
+    line_or_sine,
+    N,
+    x_errors,
+    read_resume=False,
+    adaptive=False,
+    repeat_num=None,
+    use_multinest=False,
+    use_xmeans=False,
 ):
     """
     Runs polychord on the line or sine data.
@@ -71,7 +103,7 @@ def toy_sine(
 
     else:
 
-        prior = LinfPrior(0, wavelength, -2 * amplitude, 2 * amplitude)
+        prior = LinfPrior(0, wavelength, -1.5 * amplitude, 1.5 * amplitude)
 
     def dumper(live, dead, logweights, logZ, logZerr):
         print("Last dead points:", dead[-1])
@@ -79,22 +111,46 @@ def toy_sine(
     # settings
     settings = PolyChordSettings(nDims, nDerived)
     settings.file_root = filename + f"_{N}"
+    if use_xmeans:
+        settings.file_root += "_xmeans"
     if repeat_num is not None:
         settings.file_root += f"_{repeat_num}"
     settings.nlive = 25 * nDims
     settings.do_clustering = True
     settings.read_resume = read_resume
     # settings.num_repeats = 5 * nDims
-
-    # run PolyChord
-    output = pypolychord.run_polychord(
-        likelihood,
-        nDims,
-        nDerived,
-        settings,
-        prior,
-        dumper,
-    )
+    if use_multinest:
+        multihood = lambda theta: likelihood(theta)[0]
+        solve(
+            LogLikelihood=multihood,
+            Prior=prior,
+            n_dims=nDims,
+            outputfiles_basename="multinest_chains/" + settings.file_root,
+            resume=read_resume,
+            verbose=True,
+            n_live_points=25 * nDims,
+        )
+    else:
+        # run PolyChord
+        if use_xmeans:
+            output = pypolychord.run_polychord(
+                likelihood,
+                nDims,
+                nDerived,
+                settings,
+                prior,
+                dumper,
+                cluster,
+            )
+        else:
+            output = pypolychord.run_polychord(
+                likelihood,
+                nDims,
+                nDerived,
+                settings,
+                prior,
+                dumper,
+            )
 
     # | Create a paramnames file
 
@@ -109,9 +165,12 @@ def toy_sine(
         paramnames += [(f"y{ii+1}", f"y_{ii+1}")]
     paramnames += [(f"y{N-1}", f"y_{N-1}")]
 
-    output.make_paramnames_files(paramnames)
+    if use_multinest:
+        paramnames_file("multinest_chains/" + settings.file_root, paramnames)
+    else:
+        output.make_paramnames_files(paramnames)
 
-    return output.logZ
+    return
 
 
 # def plot_toy_sine(line_or_sine, N, x_errors, adaptive=False, show=False, ax=None):
@@ -237,4 +296,3 @@ def toy_sine(
 #     #     n_fig.savefig(f"plots/{plot_filename}_{N}_n_posterior.png")
 
 #     # import getdist.plots
-  
